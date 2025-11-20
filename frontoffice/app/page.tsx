@@ -1,65 +1,120 @@
-import Image from "next/image";
+'use client';
+
+import Link from 'next/link';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+
+      <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 space-y-6">
+        {/* Sign-up Call-to-Action */}
+        <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4 relative">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-sm font-semibold text-purple-900 mb-1">
+                Inscrits-toi
+              </h2>
+              <p className="text-sm text-gray-700">
+                N&apos;attends pas, inscrits-toi et joue au quiz Zéro déchet pour gagner des cadeaux !
+              </p>
+            </div>
+            <div className="ml-3 text-4xl">🎁</div>
+          </div>
+        </div>
+
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-b from-green-50 to-white rounded-lg p-6 text-center">
+          <div className="flex justify-center items-center mb-4">
+            <div className="text-3xl mr-3">🌱</div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Bienvenue sur <span className="text-green-600">Zéro</span>
+                <span className="text-sm block text-gray-700">Déchet</span>
+              </h1>
+            </div>
+            <div className="text-3xl ml-3">🌿</div>
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            Les quiz qui te testent sur <strong>3 niveaux</strong> pour apprendre comment réduire et recycler tes déchets
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Game Rules */}
+        <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
+          <h2 className="text-lg font-bold text-gray-800">
+            Les règles du jeu
+          </h2>
+
+          {/* Good Answer */}
+          <div className="flex items-center justify-between bg-green-100 rounded-lg p-3">
+            <span className="text-sm font-medium text-green-800">
+              Bonne réponse
+            </span>
+            <span className="text-sm font-bold text-green-700">
+              +5 points
+            </span>
+          </div>
+
+          {/* Bad Answer */}
+          <div className="flex items-center justify-between bg-red-100 rounded-lg p-3">
+            <span className="text-sm font-medium text-red-800">
+              Mauvaise réponse
+            </span>
+            <span className="text-sm font-bold text-red-700">
+              -10 points
+            </span>
+          </div>
+
+          {/* Emoji Tip */}
+          <div className="flex items-start bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+            <div className="text-2xl mr-3">🤓</div>
+            <p className="text-xs text-gray-700 leading-relaxed flex-1">
+              Tu verras, c&apos;est fastoche, t&apos;as vite fait de gagner des points rapidement !
+            </p>
+          </div>
+        </div>
+
+        {/* Suggested Quiz */}
+        <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
+          <div className="text-xs text-gray-500 uppercase tracking-wide">
+            Quiz suggéré
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            Découvre comment faire la différence pour notre planète grâce à ce quiz !
+          </p>
+
+          {/* Quiz Card */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-semibold text-gray-800 mb-3">
+              Cycle de vie des déchets
+            </h3>
+
+            <div className="flex items-center mb-4">
+              <span className="text-yellow-400 text-xl mr-2">⭐</span>
+              <span className="text-sm text-gray-600">Niveau 1</span>
+            </div>
+
+            {/* Trash Can Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-4xl">🗑️</span>
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <Link href="/quiz/cycle-vie-dechets">
+              <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm">
+                Répondre au quiz pour un code promo
+              </button>
+            </Link>
+          </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
