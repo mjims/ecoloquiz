@@ -385,6 +385,46 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Pages endpoints
+  async getPages(page: number = 1, perPage: number = 15, type?: string, is_active?: boolean) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      per_page: perPage.toString()
+    });
+    if (type) params.append('type', type);
+    if (is_active !== undefined) params.append('is_active', is_active.toString());
+
+    return this.request<any>(`/pages?${params.toString()}`, {
+      method: 'GET',
+    });
+  }
+
+  async getPage(id: string) {
+    return this.request<any>(`/pages/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async createPage(pageData: any) {
+    return this.request<any>('/pages', {
+      method: 'POST',
+      body: JSON.stringify(pageData),
+    });
+  }
+
+  async updatePage(id: string, pageData: any) {
+    return this.request<any>(`/pages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(pageData),
+    });
+  }
+
+  async deletePage(id: string) {
+    return this.request<any>(`/pages/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

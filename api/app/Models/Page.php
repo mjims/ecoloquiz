@@ -13,9 +13,27 @@ class Page extends Model
 
     protected $table = 'pages';
 
-    protected $fillable = ['id', 'type', 'title', 'slug', 'summary', 'content_html', 'image_url', 'author_id', 'published_at'];
+    protected $fillable = [
+        'id',
+        'type',
+        'title',
+        'long_title',
+        'subtitle',
+        'slug',
+        'summary',
+        'content_html',
+        'image_url',
+        'author_id',
+        'is_active',
+        'published_at'
+    ];
 
-    protected $casts = ['published_at' => 'datetime', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'published_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
 
     public function author()
     {

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\EmailTypeController;
 use App\Http\Controllers\Api\LevelController;
+use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PlayerController;
@@ -98,6 +99,13 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::post('email-types', [EmailTypeController::class, 'store']);
     Route::put('email-types/{id}', [EmailTypeController::class, 'update']);
     Route::delete('email-types/{id}', [EmailTypeController::class, 'destroy']);
+
+    // Pages routes
+    Route::get('pages', [PageController::class, 'index']);
+    Route::get('pages/{id}', [PageController::class, 'show']);
+    Route::post('pages', [PageController::class, 'store']);
+    Route::put('pages/{id}', [PageController::class, 'update']);
+    Route::delete('pages/{id}', [PageController::class, 'destroy']);
 });
 
 // Permissions Management - Requires permissions.edit permission
