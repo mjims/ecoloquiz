@@ -160,4 +160,165 @@ class PlayerDashboardController extends Controller
             'levels' => $levelProgress
         ]);
     }
+
+    /**
+     * Get quiz to play with questions and answer options
+     *
+     * @OA\Get(
+     *   path="/api/player/quiz/{id}/play",
+     *   tags={"Player Dashboard"},
+     *   summary="Get a quiz to play with all questions and options",
+     *   description="Returns a quiz with questions and answer options (without revealing correct answers)",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     description="Quiz ID",
+     *     required=true,
+     *     @OA\Schema(type="string", format="uuid")
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Quiz retrieved successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="quiz", type="object")
+     *     )
+     *   ),
+     *   @OA\Response(response=404, description="Quiz not found"),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function getQuizToPlay($id)
+    {
+        $quiz = Quiz::with(['theme', 'level', 'questions.options'])->findOrFail($id);
+
+        // Transform the quiz to hide is_correct field from options
+        $quizData = $quiz->toArray();
+
+        // Remove is_correct from all answer options
+        if (isset($quizData['questions'])) {
+            foreach ($quizData['questions'] as &$question) {
+                if (isset($question['options'])) {
+                    foreach ($question['options'] as &$option) {
+                        unset($option['is_correct']);
+                    }
+                }
+            }
+        }
+
+        return response()->json(['quiz' => $quizData]);
+    }
+
+    /**
+     * Submit quiz answers and get results
+     *
+     * @OA\Post(
+     *   path="/api/player/quiz/{id}/submit",
+     *   tags={"Player Dashboard"},
+     *   summary="Submit quiz answers and get results",
+     *   description="Submit answers for a quiz and receive score and feedback",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     description="Quiz ID",
+     *     required=true,
+     *     @OA\Schema(type="string", format="uuid")
+     *   ),
+     *
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       @OA\Property(property="answers", type="object", example={"question-id-1": "option-id-1", "question-id-2": "option-id-2"})
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Quiz submitted successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="score", type="integer", example=80),
+     *       @OA\Property(property="totalQuestions", type="integer", example=10),
+     *       @OA\Property(property="correctAnswers", type="integer", example=8),
+     *       @OA\Property(property="results", type="array",
+     *         @OA\Items(type="object")
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(response=404, description="Quiz not found"),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function submitQuiz(Request $request, $id)
+    {
+        $user = $request->user();
+        $answers = $request->input('answers', []);
+
+        // Get or create player
+        $player = Player::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'points' => 0,
+                'current_level' => 'DECOUVERTE',
+                'last_played' => null,
+                'zone_id' => null
+            ]
+        );
+
+        // Get quiz with questions and options
+        $quiz = Quiz::with(['questions.options'])->findOrFail($id);
+
+        // Calculate score
+        $totalQuestions = $quiz->questions->count();
+        $correctAnswers = 0;
+        $results = [];
+
+        foreach ($quiz->questions as $question) {
+            $questionId = $question->id;
+            $userAnswerId = $answers[$questionId] ?? null;
+
+            // Find the correct option
+            $correctOption = $question->options->where('is_correct', true)->first();
+            $userAnswer = $question->options->where('id', $userAnswerId)->first();
+
+            $isCorrect = $userAnswerId === $correctOption->id;
+
+            if ($isCorrect) {
+                $correctAnswers++;
+            }
+
+            $results[] = [
+                'question_id' => $questionId,
+                'question_text' => $question->text,
+                'user_answer_id' => $userAnswerId,
+                'user_answer_text' => $userAnswer ? $userAnswer->text : null,
+                'correct_answer_id' => $correctOption->id,
+                'correct_answer_text' => $correctOption->text,
+                'is_correct' => $isCorrect,
+                'explanation' => $question->explanation
+            ];
+        }
+
+        // Calculate points: +5 for correct, -10 for incorrect (minimum 0)
+        $pointsEarned = ($correctAnswers * 5) - (($totalQuestions - $correctAnswers) * 10);
+        $pointsEarned = max(0, $pointsEarned);
+
+        // Update player points and last played
+        $player->points += $pointsEarned;
+        $player->last_played = now();
+        $player->save();
+
+        // TODO: Save quiz attempt in database
+
+        return response()->json([
+            'score' => $pointsEarned,
+            'totalQuestions' => $totalQuestions,
+            'correctAnswers' => $correctAnswers,
+            'results' => $results,
+            'newTotalPoints' => $player->points
+        ]);
+    }
 }

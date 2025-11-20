@@ -125,6 +125,25 @@ class ApiClient {
       method: 'GET',
     });
   }
+
+  async getQuizToPlay(quizId: string) {
+    return this.request<any>(`/player/quiz/${quizId}/play`, {
+      method: 'GET',
+    });
+  }
+
+  async submitQuiz(quizId: string, answers: Record<string, string>) {
+    return this.request<{
+      score: number;
+      totalQuestions: number;
+      correctAnswers: number;
+      results: Array<any>;
+      newTotalPoints: number;
+    }>(`/player/quiz/${quizId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
