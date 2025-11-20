@@ -1,0 +1,2477 @@
+openapi: 3.0.0
+info:
+  title: 'EcoloQuiz API'
+  description: 'API endpoints for EcoloQuiz - Quiz and Player Management System'
+  version: 1.0.0
+servers:
+  -
+    url: /
+    description: 'API Server'
+paths:
+  /api/admin/users:
+    get:
+      tags:
+        - 'Admin Users'
+      summary: 'Get all admin users'
+      operationId: d156d39445ae79896aaf1d8e17c10a17
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          schema:
+            type: integer
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'List of admin users'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - 'Admin Users'
+      summary: 'Create a new admin user'
+      operationId: e8099f9cb4d98a9dcb191e75b1453c9d
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+                - first_name
+                - last_name
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - superadmin
+                    - partner_mayor
+                    - partner_sponsor
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+              type: object
+      responses:
+        201:
+          description: 'Admin user created successfully'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/admin/users/{id}':
+    get:
+      tags:
+        - 'Admin Users'
+      summary: 'Get a specific admin user'
+      operationId: 37b77653b63a8b8ef93f709b6ab123ed
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Admin ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Admin user details'
+        404:
+          description: 'Admin not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - 'Admin Users'
+      summary: 'Update an admin user'
+      operationId: 4a818b51d7c2463556bbec262c8cf092
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Admin ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                email:
+                  type: string
+                  format: email
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+              type: object
+      responses:
+        200:
+          description: 'Admin user updated successfully'
+        404:
+          description: 'Admin not found'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - 'Admin Users'
+      summary: 'Delete an admin user'
+      operationId: ba9318224acf159c3515a78b81c0b44c
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Admin ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Admin user deleted successfully'
+        404:
+          description: 'Admin not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: 'Register a new player'
+      description: 'Create a new user account and player profile'
+      operationId: c7bb21a0d87049e161b8e4c9b0d909f2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                id:
+                  description: 'Optional UUID for the user'
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                  example: player@example.com
+                first_name:
+                  type: string
+                  example: John
+                last_name:
+                  type: string
+                  example: Doe
+                password:
+                  type: string
+                  format: password
+                  example: password123
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: password123
+              type: object
+      responses:
+        200:
+          description: 'User registered successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJ0eXAiOiJKV1QiLCJhbGc...
+                  token_type:
+                    type: string
+                    example: bearer
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  user:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                      status:
+                        type: string
+                        example: ACTIVE
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 'Login user'
+      description: 'Authenticate user and return JWT token'
+      operationId: dd51a484b7fa0f97c7680fdbde14cf5f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: player@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+              type: object
+      responses:
+        200:
+          description: 'Login successful'
+          content:
+            application/json:
+              schema:
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJ0eXAiOiJKV1QiLCJhbGc...
+                  token_type:
+                    type: string
+                    example: bearer
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  user:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                      status:
+                        type: string
+                    type: object
+                type: object
+        401:
+          description: 'Invalid credentials'
+        500:
+          description: 'Could not create token'
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: 'Get current user'
+      description: 'Return the currently authenticated user with roles and player profile'
+      operationId: b5de204f5e452ef51327c691aa99e77c
+      responses:
+        200:
+          description: 'User retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  user:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                      status:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: object
+                      player:
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          points:
+                            type: integer
+                          current_level:
+                            type: string
+                        type: object
+                    type: object
+                type: object
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: 'Logout user'
+      description: 'Invalidate the current JWT token'
+      operationId: df9bdc6c7a6d9f20b983526b2ec0f698
+      responses:
+        200:
+          description: 'Logout successful'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Successfully logged out'
+                type: object
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+  /api/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: 'Refresh JWT token'
+      description: 'Invalidate the current token and return a new one'
+      operationId: 30c20c52f5f72828d8c531fd7c9ea3e7
+      responses:
+        200:
+          description: 'Token refreshed successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJ0eXAiOiJKV1QiLCJhbGc...
+                  token_type:
+                    type: string
+                    example: bearer
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  user:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                      status:
+                        type: string
+                    type: object
+                type: object
+        401:
+          description: 'Could not refresh token'
+      security:
+        -
+          token: []
+  /api/email-templates:
+    get:
+      tags:
+        - 'Email Templates'
+      summary: 'Get all email templates'
+      operationId: eb6c27df7218121b5b87ad98b6475463
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          schema:
+            type: integer
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'List of email templates'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - 'Email Templates'
+      summary: 'Create a new email template'
+      operationId: 23d6b27133a71f392239e75377272c27
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - subject
+              properties:
+                name:
+                  type: string
+                  example: 'Confirmation inscription'
+                type:
+                  type: string
+                  example: transactional
+                target_types:
+                  type: string
+                  example: JOUEURS
+                subject:
+                  type: string
+                  example: 'Bienvenue sur EcoloQuiz'
+                sender_name:
+                  type: string
+                sender_email:
+                  type: string
+                body_html:
+                  type: string
+                body_text:
+                  type: string
+                variables_schema:
+                  type: object
+                is_active:
+                  type: boolean
+              type: object
+      responses:
+        201:
+          description: 'Template created successfully'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/email-templates/{id}':
+    get:
+      tags:
+        - 'Email Templates'
+      summary: 'Get a specific email template'
+      operationId: 2b166a5c0b88581438f954c14801c123
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Template ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Template details'
+        404:
+          description: 'Template not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - 'Email Templates'
+      summary: 'Update an email template'
+      operationId: d98118f4ea4f3074a80329dac5f8de08
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Template ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                target_types:
+                  type: string
+                subject:
+                  type: string
+                sender_name:
+                  type: string
+                sender_email:
+                  type: string
+                body_html:
+                  type: string
+                body_text:
+                  type: string
+                variables_schema:
+                  type: object
+                is_active:
+                  type: boolean
+              type: object
+      responses:
+        200:
+          description: 'Template updated successfully'
+        404:
+          description: 'Template not found'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - 'Email Templates'
+      summary: 'Delete an email template'
+      operationId: d01ee3b98371ab624d81694dbe7b9bb4
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Template ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Template deleted successfully'
+        404:
+          description: 'Template not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/email-types:
+    get:
+      tags:
+        - 'Email Types'
+      summary: 'Get all email types'
+      operationId: 727e006cbf7b616ca90fb0b2b10d8d00
+      responses:
+        200:
+          description: 'List of email types'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - 'Email Types'
+      summary: 'Create a new email type'
+      operationId: d61067a392b001c1fb90470845a23801
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Newsletter mensuelle'
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+              type: object
+      responses:
+        201:
+          description: 'Email type created successfully'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/email-types/{id}':
+    get:
+      tags:
+        - 'Email Types'
+      summary: 'Get a specific email type'
+      operationId: 9553f9c6aab6dc0b73265cd2f091b78a
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Email Type ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Email type details'
+        404:
+          description: 'Email type not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - 'Email Types'
+      summary: 'Update an email type'
+      operationId: 1de10b1794d0f90ab86551d11587636b
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Email Type ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+              type: object
+      responses:
+        200:
+          description: 'Email type updated successfully'
+        404:
+          description: 'Email type not found'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - 'Email Types'
+      summary: 'Delete an email type'
+      operationId: ff2283f693b4f9a942338d7ee3c9a24c
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Email Type ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Email type deleted successfully'
+        404:
+          description: 'Email type not found'
+        403:
+          description: 'Cannot delete system types'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/levels:
+    get:
+      tags:
+        - Levels
+      summary: 'Get all levels'
+      operationId: daede424b9c4c7db37d953e6d3ef287f
+      responses:
+        200:
+          description: 'List of levels'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/permissions:
+    get:
+      tags:
+        - Permissions
+      summary: 'Get all permissions'
+      description: 'Retrieve a list of all permissions. Requires permissions.view or permissions.edit permission'
+      operationId: a49af5d462a91e9996aa5342b6de4ddd
+      responses:
+        200:
+          description: 'Permissions retrieved successfully'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                      example: users.view
+                    description:
+                      type: string
+                      example: 'Voir les utilisateurs'
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+                  type: object
+        401:
+          description: Unauthenticated
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - Permissions
+      summary: 'Create a new permission'
+      description: 'Create a new permission. Requires permissions.create permission'
+      operationId: 6ef531e33f8fca9c42d3e8fcaf30d5b4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: products.view
+                description:
+                  type: string
+                  example: 'Voir les produits'
+              type: object
+      responses:
+        201:
+          description: 'Permission created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                  data:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                      description:
+                        type: string
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+  '/api/permissions/{id}':
+    get:
+      tags:
+        - Permissions
+      summary: 'Get a specific permission'
+      description: 'Retrieve details of a specific permission. Requires permissions.view or permissions.edit permission'
+      operationId: 16db55c19d22dca89994e416d7dd28be
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Permission retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+                type: object
+        404:
+          description: 'Permission not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - Permissions
+      summary: 'Update a permission'
+      description: 'Update an existing permission. Requires permissions.edit permission'
+      operationId: c5094a50888fb3f3f1254fea3140241a
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: products.edit
+                description:
+                  type: string
+                  example: 'Modifier les produits'
+              type: object
+      responses:
+        200:
+          description: 'Permission updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+        404:
+          description: 'Permission not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - Permissions
+      summary: 'Delete a permission'
+      description: 'Delete an existing permission. Requires permissions.delete permission'
+      operationId: d0a14d107d6e379b9b3b5207f5c76e8e
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Permission deleted successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                type: object
+        404:
+          description: 'Permission not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+  /api/players:
+    get:
+      tags:
+        - Players
+      summary: 'Get paginated list of players'
+      description: 'Returns a paginated list of all players with their user information, zone, and statistics'
+      operationId: 930ce8098c35806eb854e0be45ef56c8
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          required: false
+          schema:
+            type: integer
+            example: 1
+        -
+          name: per_page
+          in: query
+          description: 'Number of items per page (max 100)'
+          required: false
+          schema:
+            type: integer
+            example: 15
+        -
+          name: sort_by
+          in: query
+          description: 'Field to sort by'
+          required: false
+          schema:
+            type: string
+            enum:
+              - points
+              - created_at
+              - last_played
+            example: points
+        -
+          name: sort_order
+          in: query
+          description: 'Sort order'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            example: desc
+        -
+          name: level
+          in: query
+          description: 'Filter by current level'
+          required: false
+          schema:
+            type: string
+            example: DECOUVERTE
+        -
+          name: zone_id
+          in: query
+          description: 'Filter by zone ID'
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Players retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  current_page:
+                    type: integer
+                    example: 1
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        user_id:
+                          type: string
+                          format: uuid
+                        points:
+                          type: integer
+                          example: 150
+                        current_level:
+                          type: string
+                          example: DECOUVERTE
+                        last_played:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        zone_id:
+                          type: string
+                          format: uuid
+                          nullable: true
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                        user:
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            email:
+                              type: string
+                            first_name:
+                              type: string
+                            last_name:
+                              type: string
+                            status:
+                              type: string
+                          type: object
+                        zone:
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                            code:
+                              type: string
+                          type: object
+                          nullable: true
+                      type: object
+                  first_page_url:
+                    type: string
+                    example: 'http://localhost:8000/api/players?page=1'
+                  from:
+                    type: integer
+                    example: 1
+                  last_page:
+                    type: integer
+                    example: 5
+                  last_page_url:
+                    type: string
+                    example: 'http://localhost:8000/api/players?page=5'
+                  links:
+                    type: array
+                    items:
+                      properties:
+                        url:
+                          type: string
+                          nullable: true
+                        label:
+                          type: string
+                        active:
+                          type: boolean
+                      type: object
+                  next_page_url:
+                    type: string
+                    example: 'http://localhost:8000/api/players?page=2'
+                    nullable: true
+                  path:
+                    type: string
+                    example: 'http://localhost:8000/api/players'
+                  per_page:
+                    type: integer
+                    example: 15
+                  prev_page_url:
+                    type: string
+                    nullable: true
+                  to:
+                    type: integer
+                    example: 15
+                  total:
+                    type: integer
+                    example: 67
+                type: object
+        401:
+          description: Unauthenticated
+        403:
+          description: Forbidden
+      security:
+        -
+          token: []
+  '/api/players/{id}':
+    get:
+      tags:
+        - Players
+      summary: 'Get a specific player'
+      description: 'Returns detailed information about a specific player'
+      operationId: 7c57cb1b709b808a593444c9af1778b0
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Player ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Player retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  player:
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      user_id:
+                        type: string
+                        format: uuid
+                      points:
+                        type: integer
+                        example: 150
+                      current_level:
+                        type: string
+                        example: DECOUVERTE
+                      last_played:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      zone_id:
+                        type: string
+                        format: uuid
+                        nullable: true
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
+                      user:
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          email:
+                            type: string
+                          first_name:
+                            type: string
+                          last_name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      zone:
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          code:
+                            type: string
+                        type: object
+                        nullable: true
+                      allocations:
+                        type: array
+                        items:
+                          type: object
+                    type: object
+                type: object
+        404:
+          description: 'Player not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+  /api/questions:
+    get:
+      tags:
+        - Questions
+      summary: 'Get paginated list of questions'
+      description: 'Returns a paginated list of all questions with statistics'
+      operationId: 860331f8e4b6d740293483a82e52fc5a
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          required: false
+          schema:
+            type: integer
+            example: 1
+        -
+          name: per_page
+          in: query
+          description: 'Number of items per page (max 100)'
+          required: false
+          schema:
+            type: integer
+            example: 15
+      responses:
+        200:
+          description: 'Questions retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  current_page:
+                    type: integer
+                    example: 1
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        quiz_id:
+                          type: string
+                          format: uuid
+                        text:
+                          type: string
+                          example: 'Le plastique est-il 100% recyclable ?'
+                        type:
+                          type: string
+                          example: MULTIPLE_CHOICE
+                        explanation:
+                          type: string
+                        image_url:
+                          type: string
+                          nullable: true
+                        success_rate:
+                          type: integer
+                          example: 87
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                      type: object
+                  total:
+                    type: integer
+                    example: 67
+                type: object
+        401:
+          description: Unauthenticated
+        403:
+          description: Forbidden
+      security:
+        -
+          token: []
+    post:
+      tags:
+        - Questions
+      summary: 'Create a new question'
+      description: 'Create a new question for a quiz with answer options'
+      operationId: 5b8990f331654a60cfd5e3914d7e07a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - quiz_id
+                - text
+                - type
+                - options
+              properties:
+                quiz_id:
+                  type: string
+                  format: uuid
+                text:
+                  type: string
+                  example: 'Le plastique est-il 100% recyclable ?'
+                type:
+                  description: 'QCM or VRAI_FAUX'
+                  type: string
+                  example: QCM
+                explanation:
+                  type: string
+                image_url:
+                  type: string
+                  nullable: true
+                options:
+                  type: array
+                  items:
+                    properties:
+                      text:
+                        type: string
+                        example: Oui
+                      is_correct:
+                        type: boolean
+                        example: false
+                      extra:
+                        type: string
+                        nullable: true
+                    type: object
+              type: object
+      responses:
+        201:
+          description: 'Question created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  question:
+                    type: object
+                  message:
+                    type: string
+                    example: 'Question created successfully'
+                type: object
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+  '/api/questions/{id}':
+    get:
+      tags:
+        - Questions
+      summary: 'Get a specific question'
+      description: 'Returns detailed information about a specific question'
+      operationId: fb7e0422bc357dd72ecfaa07729c41c1
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Question ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Question retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  question:
+                    type: object
+                type: object
+        404:
+          description: 'Question not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+    put:
+      tags:
+        - Questions
+      summary: 'Update a question'
+      description: 'Update an existing question'
+      operationId: f07ecaa8b2a907cc3231481f1a06b704
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Question ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                text:
+                  type: string
+                type:
+                  type: string
+                explanation:
+                  type: string
+                image_url:
+                  type: string
+                  nullable: true
+              type: object
+      responses:
+        200:
+          description: 'Question updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  question:
+                    type: object
+                  message:
+                    type: string
+                    example: 'Question updated successfully'
+                type: object
+        404:
+          description: 'Question not found'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+    delete:
+      tags:
+        - Questions
+      summary: 'Delete a question'
+      description: 'Soft delete a question'
+      operationId: 2cde4cbb83a9fc1d3660444e77750195
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Question ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Question deleted successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Question deleted successfully'
+                type: object
+        404:
+          description: 'Question not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          token: []
+  /api/quizzes:
+    get:
+      tags:
+        - Quizzes
+      summary: 'Get all quizzes'
+      operationId: c104ed69adb2fcc838e14859bee82cb2
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          required: false
+          schema:
+            type: integer
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          required: false
+          schema:
+            type: integer
+            default: 15
+        -
+          name: theme_id
+          in: query
+          description: 'Filter by theme ID'
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'List of quizzes'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - Quizzes
+      summary: 'Create a new quiz'
+      operationId: 17442658f5bcce78980f375fe66c83f1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - title
+                - theme_id
+                - level_id
+              properties:
+                title:
+                  type: string
+                  example: 'Quiz Déchet Niveau 1'
+                theme_id:
+                  type: string
+                  format: uuid
+                level_id:
+                  type: integer
+                  example: 1
+                max_score:
+                  type: integer
+                  example: 100
+              type: object
+      responses:
+        201:
+          description: 'Quiz created successfully'
+        400:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/quizzes/{id}':
+    get:
+      tags:
+        - Quizzes
+      summary: 'Get a specific quiz'
+      operationId: ce361b465ca18f66045654d0ed977db8
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Quiz ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Quiz details'
+        404:
+          description: 'Quiz not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - Quizzes
+      summary: 'Update a quiz'
+      operationId: 7a420580b24a0a69cc55a676e172f09d
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Quiz ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                title:
+                  type: string
+                theme_id:
+                  type: string
+                  format: uuid
+                level_id:
+                  type: integer
+                max_score:
+                  type: integer
+              type: object
+      responses:
+        200:
+          description: 'Quiz updated successfully'
+        400:
+          description: 'Validation error'
+        404:
+          description: 'Quiz not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - Quizzes
+      summary: 'Delete a quiz (soft delete)'
+      operationId: 61dcdd818514499d9fbc968c684e17e8
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Quiz ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Quiz deleted successfully'
+        404:
+          description: 'Quiz not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/roles:
+    get:
+      tags:
+        - Roles
+      summary: 'Get all roles with permissions'
+      description: 'Retrieve a list of all roles. Requires roles.view or roles.edit permission'
+      operationId: ca86f0a206144dfbd695b749b4b28f9d
+      responses:
+        200:
+          description: 'Roles retrieved successfully'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                      example: admin
+                    description:
+                      type: string
+                      example: 'Administrator role'
+                    permissions:
+                      type: array
+                      items:
+                        type: object
+                    permissions_count:
+                      type: integer
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+                  type: object
+        401:
+          description: Unauthenticated
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - Roles
+      summary: 'Create a new role'
+      description: 'Create a new role with permissions. Requires roles.create permission'
+      operationId: 341b8b162b61267c7bd187500aea5bc4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: moderator
+                description:
+                  type: string
+                  example: 'Moderator role'
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              type: object
+      responses:
+        201:
+          description: 'Role created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+  '/api/roles/{id}':
+    get:
+      tags:
+        - Roles
+      summary: 'Get a specific role with permissions'
+      description: 'Retrieve details of a specific role. Requires roles.view or roles.edit permission'
+      operationId: 15c404caf238f1861c81f68205d328e5
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Role retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                type: object
+        404:
+          description: 'Role not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - Roles
+      summary: 'Update a role'
+      description: 'Update an existing role and its permissions. Requires roles.edit permission'
+      operationId: c73ab816ae8fb7c34a995d37ba577082
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: moderator
+                description:
+                  type: string
+                  example: 'Updated description'
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              type: object
+      responses:
+        200:
+          description: 'Role updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                type: object
+        422:
+          description: 'Validation error'
+        404:
+          description: 'Role not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - Roles
+      summary: 'Delete a role'
+      description: 'Delete an existing role. Requires roles.delete permission'
+      operationId: ffa6ef115d86b00cc6c54a6210019f9c
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Role deleted successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                type: object
+        404:
+          description: 'Role not found'
+        403:
+          description: Forbidden
+      security:
+        -
+          bearerAuth: []
+  /api/themes:
+    get:
+      tags:
+        - Themes
+      summary: 'Get all themes'
+      operationId: 242dd5755f1a0a558e03f35ed767a0e3
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          required: false
+          schema:
+            type: integer
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        200:
+          description: 'List of themes'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - Themes
+      summary: 'Create a new theme'
+      operationId: 6c702ed2471319d0adb9b31b135f5b56
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                  example: Déchet
+                description:
+                  type: string
+                  example: 'Questions sur les déchets et le recyclage'
+              type: object
+      responses:
+        201:
+          description: 'Theme created successfully'
+        400:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/themes/{id}':
+    get:
+      tags:
+        - Themes
+      summary: 'Get a specific theme'
+      operationId: be6b8ff4957304ba3fe46f1a2130cd51
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Theme ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Theme details'
+        404:
+          description: 'Theme not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - Themes
+      summary: 'Update a theme'
+      operationId: 0f114f999fcce99d4e667de54e157f6f
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Theme ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+              type: object
+      responses:
+        200:
+          description: 'Theme updated successfully'
+        400:
+          description: 'Validation error'
+        404:
+          description: 'Theme not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - Themes
+      summary: 'Delete a theme (soft delete)'
+      operationId: fa88963b700849c8d1da77689e1a30d3
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Theme ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Theme deleted successfully'
+        404:
+          description: 'Theme not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  /api/upload/image:
+    post:
+      tags:
+        - Upload
+      summary: 'Upload an image'
+      operationId: 96e87e0aa28d7ecb6d96cb33703daa6f
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                image:
+                  description: 'Image file to upload'
+                  type: string
+                  format: binary
+              type: object
+      responses:
+        200:
+          description: 'Image uploaded successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  url:
+                    type: string
+                    example: 'http://localhost:8000/storage/questions/abc123.jpg'
+                  message:
+                    type: string
+                    example: 'Image uploaded successfully'
+                type: object
+        400:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/users/{id}':
+    put:
+      tags:
+        - 'User Management'
+      summary: 'Mettre à jour un utilisateur'
+      description: "Un joueur peut mettre à jour ses propres informations. Un admin peut mettre à jour n'importe quel utilisateur s'il a la permission."
+      operationId: 7a5f2a9436e4440c174e24837eed023a
+      parameters:
+        -
+          name: id
+          in: path
+          description: "ID de l'utilisateur"
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                first_name:
+                  type: string
+                  example: Jean
+                last_name:
+                  type: string
+                  example: Dupont
+                email:
+                  type: string
+                  format: email
+                  example: jean.dupont@example.com
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - inactive
+                    - suspended
+                  example: active
+                meta:
+                  type: object
+                  example:
+                    phone: '0123456789'
+              type: object
+      responses:
+        200:
+          description: 'Utilisateur mis à jour avec succès'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Utilisateur mis à jour avec succès'
+                  user:
+                    type: object
+                type: object
+        403:
+          description: 'Non autorisé'
+        404:
+          description: 'Utilisateur non trouvé'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - 'User Management'
+      summary: 'Supprimer un utilisateur'
+      description: "Un joueur peut supprimer son propre compte. Un admin peut supprimer un joueur ou un autre admin s'il a la permission."
+      operationId: 476ad38ea6c7a190704563606da1c66b
+      parameters:
+        -
+          name: id
+          in: path
+          description: "ID de l'utilisateur"
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Utilisateur supprimé avec succès'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Utilisateur supprimé avec succès'
+                type: object
+        403:
+          description: 'Non autorisé'
+        404:
+          description: 'Utilisateur non trouvé'
+      security:
+        -
+          bearerAuth: []
+  '/api/users/{id}/password':
+    put:
+      tags:
+        - 'User Management'
+      summary: "Mettre à jour le mot de passe d'un utilisateur"
+      description: "Un utilisateur peut changer son propre mot de passe. Un admin peut changer le mot de passe d'un autre admin s'il a la permission."
+      operationId: 3a90472f68fce9de12d0a9a1ed064014
+      parameters:
+        -
+          name: id
+          in: path
+          description: "ID de l'utilisateur"
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - password
+                - password_confirmation
+              properties:
+                password:
+                  type: string
+                  format: password
+                  example: newpassword123
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: newpassword123
+              type: object
+      responses:
+        200:
+          description: 'Mot de passe mis à jour avec succès'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Mot de passe mis à jour avec succès'
+                type: object
+        403:
+          description: 'Non autorisé'
+        404:
+          description: 'Utilisateur non trouvé'
+      security:
+        -
+          bearerAuth: []
+  '/api/users/{id}/disable':
+    put:
+      tags:
+        - 'User Management'
+      summary: 'Désactiver un utilisateur'
+      description: "Un admin peut désactiver un compte joueur s'il a la permission."
+      operationId: 85ea848bf2e351f7e76f1664a570ed74
+      parameters:
+        -
+          name: id
+          in: path
+          description: "ID de l'utilisateur"
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Utilisateur désactivé avec succès'
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: 'Utilisateur désactivé avec succès'
+                type: object
+        403:
+          description: 'Non autorisé'
+        404:
+          description: 'Utilisateur non trouvé'
+      security:
+        -
+          bearerAuth: []
+  /api/users/me:
+    get:
+      tags:
+        - 'User Management'
+      summary: "Obtenir les informations de l'utilisateur connecté"
+      description: "Retourne les informations complètes de l'utilisateur authentifié"
+      operationId: e9b3875dd972ee7fcee4a60cb1f80c49
+      responses:
+        200:
+          description: "Informations de l'utilisateur"
+          content:
+            application/json:
+              schema:
+                properties:
+                  user:
+                    type: object
+                type: object
+      security:
+        -
+          bearerAuth: []
+  /api/zones:
+    get:
+      tags:
+        - Zones
+      summary: 'Get all zones'
+      operationId: 0f732fe44c20996cd9dd342f722cb156
+      parameters:
+        -
+          name: page
+          in: query
+          description: 'Page number'
+          schema:
+            type: integer
+        -
+          name: per_page
+          in: query
+          description: 'Items per page'
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'List of zones'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - Zones
+      summary: 'Create a new zone'
+      operationId: 253822acdf31d7499579454f17b7fc8b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - type
+              properties:
+                name:
+                  type: string
+                  example: Île-de-France
+                type:
+                  type: string
+                  example: REGION
+                code_postal:
+                  type: string
+                  example: '75001'
+                parent_zone_id:
+                  type: string
+                  format: uuid
+                metadata:
+                  type: object
+              type: object
+      responses:
+        201:
+          description: 'Zone created successfully'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+  '/api/zones/{id}':
+    get:
+      tags:
+        - Zones
+      summary: 'Get a specific zone'
+      operationId: 9fbd7dbdda1909cd7ebc9bb4167293d9
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Zone details'
+        404:
+          description: 'Zone not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - Zones
+      summary: 'Update a zone'
+      operationId: 28fa1be86dd47c22a90f9db32cdf9481
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                code_postal:
+                  type: string
+                parent_zone_id:
+                  type: string
+                  format: uuid
+                metadata:
+                  type: object
+              type: object
+      responses:
+        200:
+          description: 'Zone updated successfully'
+        404:
+          description: 'Zone not found'
+        422:
+          description: 'Validation error'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - Zones
+      summary: 'Delete a zone'
+      operationId: 357ad6da21048b1eed885132d85c7c01
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone ID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: 'Zone deleted successfully'
+        404:
+          description: 'Zone not found'
+        401:
+          description: Unauthenticated
+      security:
+        -
+          bearerAuth: []
+components:
+  securitySchemes:
+    token:
+      type: http
+      description: 'Enter JWT Bearer token'
+      bearerFormat: JWT
+      scheme: bearer
+tags:
+  -
+    name: 'User Management'
+    description: 'Gestion des utilisateurs (admin et joueurs)'
+  -
+    name: 'Admin Users'
+    description: 'Admin Users'
+  -
+    name: Auth
+    description: Auth
+  -
+    name: 'Email Templates'
+    description: 'Email Templates'
+  -
+    name: 'Email Types'
+    description: 'Email Types'
+  -
+    name: Levels
+    description: Levels
+  -
+    name: Permissions
+    description: Permissions
+  -
+    name: Players
+    description: Players
+  -
+    name: Questions
+    description: Questions
+  -
+    name: Quizzes
+    description: Quizzes
+  -
+    name: Roles
+    description: Roles
+  -
+    name: Themes
+    description: Themes
+  -
+    name: Upload
+    description: Upload
+  -
+    name: Zones
+    description: Zones
