@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\QuestionController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\ZoneController;
@@ -119,6 +120,10 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::post('gifts', [GiftController::class, 'store']);
     Route::put('gifts/{id}', [GiftController::class, 'update']);
     Route::delete('gifts/{id}', [GiftController::class, 'destroy']);
+
+    // Statistics
+    Route::get('stats', [StatsController::class, 'index']);
+    Route::get('stats/filters', [StatsController::class, 'filters']);
 });
 
 // Permissions Management - Requires permissions.edit permission

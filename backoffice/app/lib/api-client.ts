@@ -479,6 +479,24 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Statistics
+  async getStats(zoneId?: string, themeId?: string, startDate?: string, endDate?: string, levels?: string[]) {
+    const params = new URLSearchParams();
+    if (zoneId) params.append('zone_id', zoneId);
+    if (themeId) params.append('theme_id', themeId);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (levels && levels.length > 0) {
+      levels.forEach(level => params.append('levels[]', level));
+    }
+    const query = params.toString();
+    return this.request<any>(`/stats${query ? '?' + query : ''}`, { method: 'GET' });
+  }
+
+  async getStatsFilters() {
+    return this.request<any>('/stats/filters', { method: 'GET' });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
