@@ -18,11 +18,20 @@ class Zone extends Model
     protected $table = 'zones';
 
     protected $fillable = [
-        'id', 'type', 'name', 'code_postal', 'parent_zone_id', 'metadata',
+        'id',
+        'type',
+        'name',
+        'code_postal',
+        'parent_zone_id',
+        'metadata',
+        'start_date',
+        'end_date',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'start_date' => 'date',
+        'end_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

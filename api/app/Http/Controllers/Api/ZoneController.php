@@ -97,10 +97,12 @@ class ZoneController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:REGION,DEPT,VILLE,CODE_POSTAL,ENTREPRISE',
+            'type' => 'required|string|in:REGION,DEPT,VILLE,CODE_POSTAL,ENTREPRISE,TERRITOIRE',
             'code_postal' => 'nullable|string|max:10',
             'parent_zone_id' => 'nullable|uuid|exists:zones,id',
             'metadata' => 'nullable|array',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         if ($validator->fails()) {
@@ -154,10 +156,12 @@ class ZoneController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'type' => 'sometimes|required|string|in:REGION,DEPT,VILLE,CODE_POSTAL,ENTREPRISE',
+            'type' => 'sometimes|required|string|in:REGION,DEPT,VILLE,CODE_POSTAL,ENTREPRISE,TERRITOIRE',
             'code_postal' => 'nullable|string|max:10',
             'parent_zone_id' => 'nullable|uuid|exists:zones,id',
             'metadata' => 'nullable|array',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         if ($validator->fails()) {
