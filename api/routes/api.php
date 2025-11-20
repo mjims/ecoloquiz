@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PlayerController;
+use App\Http\Controllers\Api\PlayerDashboardController;
 use App\Http\Controllers\Api\QuestionController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\RegionController;
@@ -40,6 +41,10 @@ Route::middleware('auth:api')->group(function () {
 
     // User Management - Routes admin uniquement
     Route::put('users/{id}/disable', [\App\Http\Controllers\Api\UserManagementController::class, 'disable']);
+
+    // Player Dashboard - Routes accessibles à tous les utilisateurs authentifiés
+    Route::get('player/suggested-quiz', [PlayerDashboardController::class, 'suggestedQuiz']);
+    Route::get('player/progression', [PlayerDashboardController::class, 'progression']);
 });
 
 // Admin-only user creation

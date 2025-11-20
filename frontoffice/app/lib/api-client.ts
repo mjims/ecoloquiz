@@ -104,6 +104,27 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Player Dashboard endpoints
+  async getSuggestedQuiz() {
+    return this.request<any>('/player/suggested-quiz', {
+      method: 'GET',
+    });
+  }
+
+  async getProgression() {
+    return this.request<{
+      quizCompleted: number;
+      levels: Array<{
+        level: number;
+        name: string;
+        percentage: number;
+        stars: number;
+      }>;
+    }>('/player/progression', {
+      method: 'GET',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

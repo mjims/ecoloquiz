@@ -1,19 +1,79 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { apiClient } from '@/lib/api-client';
+
+interface Quiz {
+  id: string;
+  title: string;
+  theme_id: string;
+  level_id: number;
+  max_score?: number;
+  theme?: {
+    id: string;
+    name: string;
+  };
+  level?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+}
+
+interface ProgressionData {
+  quizCompleted: number;
+  levels: Array<{
+    level: number;
+    name: string;
+    percentage: number;
+    stars: number;
+  }>;
+}
 
 export default function Dashboard() {
-  // TODO: Fetch real progression data from API
-  const progressionData = {
-    quizCompleted: 45,
-    levels: [
-      { level: 1, name: 'Niveau 1', percentage: 100, stars: 1 },
-      { level: 2, name: 'Niveau 2', percentage: 42, stars: 2 },
-      { level: 3, name: 'Niveau 3', percentage: 0, stars: 3 },
-    ],
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [suggestedQuiz, setSuggestedQuiz] = useState<Quiz | null>(null);
+  const [progressionData, setProgressionData] = useState<ProgressionData>({
+    quizCompleted: 0,
+    levels: [],
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+
+      try {
+        // Fetch suggested quiz
+        const quizResponse = await apiClient.getSuggestedQuiz();
+        if (quizResponse.data && quizResponse.data.quiz) {
+          setSuggestedQuiz(quizResponse.data.quiz);
+        }
+
+        // Fetch progression data
+        const progressionResponse = await apiClient.getProgression();
+        if (progressionResponse.data) {
+          setProgressionData(progressionResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
@@ -61,134 +121,146 @@ export default function Dashboard() {
               </div>
 
               {/* Suggested Quiz */}
-              <div className="bg-white rounded-lg shadow-sm p-5 lg:p-6 space-y-4">
-                <div className="text-xs lg:text-sm text-gray-500 uppercase tracking-wide">
-                  Quiz suggéré
-                </div>
-                <p className="text-sm lg:text-base text-gray-700 leading-relaxed">
-                  Découvre comment faire la différence pour notre planète grâce à ce quiz !
-                </p>
-
-                {/* Quiz Card */}
-                <div className="bg-gradient-to-b from-teal-50 to-white rounded-lg p-4 lg:p-5 border border-teal-100">
-                  <h3 className="font-semibold text-gray-800 mb-3 text-lg lg:text-xl">
-                    Cycle de vie des déchets
-                  </h3>
-
-                  <div className="flex items-center mb-4">
-                    <span className="text-yellow-400 text-xl lg:text-2xl mr-2">⭐</span>
-                    <span className="text-sm lg:text-base text-gray-600">Niveau 1</span>
+              {suggestedQuiz ? (
+                <div className="bg-white rounded-lg shadow-sm p-5 lg:p-6 space-y-4">
+                  <div className="text-xs lg:text-sm text-gray-500 uppercase tracking-wide">
+                    Quiz suggéré
                   </div>
+                  <p className="text-sm lg:text-base text-gray-700 leading-relaxed">
+                    Découvre comment faire la différence pour notre planète grâce à ce quiz !
+                  </p>
 
-                  {/* Trash Can Icon */}
-                  <div className="flex justify-center mb-4">
-                    <div className="w-24 h-24 lg:w-28 lg:h-28 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-5xl lg:text-6xl">🗑️</span>
+                  {/* Quiz Card */}
+                  <div className="bg-gradient-to-b from-teal-50 to-white rounded-lg p-4 lg:p-5 border border-teal-100">
+                    <h3 className="font-semibold text-gray-800 mb-3 text-lg lg:text-xl">
+                      {suggestedQuiz.title}
+                    </h3>
+
+                    <div className="flex items-center mb-4">
+                      <span className="text-yellow-400 text-xl lg:text-2xl mr-2">⭐</span>
+                      <span className="text-sm lg:text-base text-gray-600">
+                        {suggestedQuiz.level?.name || 'Niveau 1'}
+                      </span>
                     </div>
-                  </div>
 
-                  {/* CTA Button */}
-                  <Link href="/quiz/cycle-vie-dechets">
-                    <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm lg:text-base mb-3">
-                      Répondre au quiz pour un code promo
-                    </button>
-                  </Link>
+                    {/* Trash Can Icon */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-24 h-24 lg:w-28 lg:h-28 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-5xl lg:text-6xl">🗑️</span>
+                      </div>
+                    </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button className="flex-1 bg-white border-2 border-teal-600 text-teal-600 hover:bg-teal-50 font-medium py-2 px-4 rounded-lg transition-colors text-sm lg:text-base flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                      </svg>
-                      Partager avec mes potes
-                    </button>
-                    <Link href="/quiz" className="flex-1">
-                      <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-4 rounded-lg transition-colors text-sm lg:text-base">
-                        Voir tous les quiz
+                    {/* CTA Button */}
+                    <Link href={`/quiz/${suggestedQuiz.id}`}>
+                      <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm lg:text-base mb-3">
+                        Répondre au quiz pour un code promo
                       </button>
                     </Link>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button className="flex-1 bg-white border-2 border-teal-600 text-teal-600 hover:bg-teal-50 font-medium py-2 px-4 rounded-lg transition-colors text-sm lg:text-base flex items-center justify-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        Partager avec mes potes
+                      </button>
+                      <Link href="/quiz" className="flex-1">
+                        <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-4 rounded-lg transition-colors text-sm lg:text-base">
+                          Voir tous les quiz
+                        </button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm p-5 lg:p-6 text-center">
+                  <p className="text-gray-500">Aucun quiz disponible pour le moment</p>
+                </div>
+              )}
 
               {/* Progression - Mobile only */}
-              <div className="lg:hidden bg-white rounded-lg shadow-sm p-5 space-y-4">
-                <h2 className="text-lg font-bold text-gray-800">Progression</h2>
-                <div className="text-center mb-4">
-                  <span className="text-3xl font-bold text-teal-600">{progressionData.quizCompleted}</span>
-                  <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
-                </div>
-
-                {progressionData.levels.map((level) => (
-                  <div key={level.level} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700">{level.name}</span>
-                        <div className="flex">
-                          {Array.from({ length: 3 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className={`text-lg ${
-                                i < level.stars ? 'text-yellow-400' : 'text-gray-300'
-                              }`}
-                            >
-                              ⭐
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-sm font-bold text-gray-900">{level.percentage}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-teal-600 h-2 rounded-full transition-all"
-                        style={{ width: `${level.percentage}%` }}
-                      ></div>
-                    </div>
+              {progressionData.levels.length > 0 && (
+                <div className="lg:hidden bg-white rounded-lg shadow-sm p-5 space-y-4">
+                  <h2 className="text-lg font-bold text-gray-800">Progression</h2>
+                  <div className="text-center mb-4">
+                    <span className="text-3xl font-bold text-teal-600">{progressionData.quizCompleted}</span>
+                    <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
                   </div>
-                ))}
-              </div>
+
+                  {progressionData.levels.map((level) => (
+                    <div key={level.level} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-700">{level.name}</span>
+                          <div className="flex">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={`text-lg ${
+                                  i < level.stars ? 'text-yellow-400' : 'text-gray-300'
+                                }`}
+                              >
+                                ⭐
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{level.percentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-teal-600 h-2 rounded-full transition-all"
+                          style={{ width: `${level.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sidebar - Right column (1/3 on desktop) - Progression */}
-            <div className="hidden lg:block lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24 space-y-4">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Progression</h2>
-                <div className="text-center mb-6">
-                  <span className="text-4xl font-bold text-teal-600">{progressionData.quizCompleted}</span>
-                  <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
-                </div>
-
-                {progressionData.levels.map((level) => (
-                  <div key={level.level} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700">{level.name}</span>
-                        <div className="flex">
-                          {Array.from({ length: 3 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className={`text-base ${
-                                i < level.stars ? 'text-yellow-400' : 'text-gray-300'
-                              }`}
-                            >
-                              ⭐
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-sm font-bold text-gray-900">{level.percentage}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-teal-600 h-2.5 rounded-full transition-all"
-                        style={{ width: `${level.percentage}%` }}
-                      ></div>
-                    </div>
+            {progressionData.levels.length > 0 && (
+              <div className="hidden lg:block lg:col-span-1">
+                <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Progression</h2>
+                  <div className="text-center mb-6">
+                    <span className="text-4xl font-bold text-teal-600">{progressionData.quizCompleted}</span>
+                    <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
                   </div>
-                ))}
+
+                  {progressionData.levels.map((level) => (
+                    <div key={level.level} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-700">{level.name}</span>
+                          <div className="flex">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={`text-base ${
+                                  i < level.stars ? 'text-yellow-400' : 'text-gray-300'
+                                }`}
+                              >
+                                ⭐
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{level.percentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className="bg-teal-600 h-2.5 rounded-full transition-all"
+                          style={{ width: `${level.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
