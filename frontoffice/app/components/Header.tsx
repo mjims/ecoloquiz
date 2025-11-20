@@ -18,6 +18,28 @@ export default function Header() {
             </div>
           </Link>
 
+          {/* Desktop Navigation - Hidden on mobile */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link
+              href="/"
+              className="text-gray-700 hover:text-green-600 transition-colors font-medium"
+            >
+              Accueil
+            </Link>
+            <Link
+              href="/quiz"
+              className="text-gray-700 hover:text-green-600 transition-colors font-medium"
+            >
+              Quiz
+            </Link>
+            <Link
+              href="/about"
+              className="text-gray-700 hover:text-green-600 transition-colors font-medium"
+            >
+              À propos
+            </Link>
+          </nav>
+
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
             {/* User Icon */}
@@ -41,10 +63,10 @@ export default function Header() {
               </svg>
             </Link>
 
-            {/* Menu Icon */}
+            {/* Menu Icon - Only on mobile */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Menu"
             >
               <svg
@@ -75,7 +97,7 @@ export default function Header() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <nav className="mt-4 pb-4 border-t border-gray-200 pt-4">
+          <nav className="md:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
             <ul className="space-y-3">
               <li>
                 <Link
