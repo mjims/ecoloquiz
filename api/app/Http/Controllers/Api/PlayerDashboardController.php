@@ -194,21 +194,9 @@ class PlayerDashboardController extends Controller
     {
         $quiz = Quiz::with(['theme', 'level', 'questions.options'])->findOrFail($id);
 
-        // Transform the quiz to hide is_correct field from options
-        $quizData = $quiz->toArray();
-
-        // Remove is_correct from all answer options
-        if (isset($quizData['questions'])) {
-            foreach ($quizData['questions'] as &$question) {
-                if (isset($question['options'])) {
-                    foreach ($question['options'] as &$option) {
-                        unset($option['is_correct']);
-                    }
-                }
-            }
-        }
-
-        return response()->json(['quiz' => $quizData]);
+        // Return quiz with all data including is_correct
+        // Frontend will handle not showing it until after validation
+        return response()->json(['quiz' => $quiz]);
     }
 
     /**
