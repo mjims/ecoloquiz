@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 
 interface CreateZoneModalProps {
@@ -11,49 +11,31 @@ interface CreateZoneModalProps {
 
 type ZoneType = 'TERRITOIRE' | 'ENTREPRISE';
 
-// Données de base pour les régions de France (simplifiée)
-const REGIONS = [
-  'Île-de-France',
-  'Auvergne-Rhône-Alpes',
-  'Nouvelle-Aquitaine',
-  'Occitanie',
-  'Hauts-de-France',
-  'Provence-Alpes-Côte d\\'Azur',
-  'Grand Est',
-  'Pays de la Loire',
-  'Bretagne',
-  'Normandie',
-  'Bourgogne-Franche-Comté',
-  'Centre-Val de Loire',
-  'Corse',
-];
+interface Departement {
+  id: number;
+  code: string;
+  name: string;
+  region_id: number;
+}
 
-// Départements par région (liste complète des 13 régions métropolitaines)
-const DEPARTEMENTS: Record<string, string[]> = {
-  'Île-de-France': ['Paris (75)', 'Seine-et-Marne (77)', 'Yvelines (78)', 'Essonne (91)', 'Hauts-de-Seine (92)', 'Seine-Saint-Denis (93)', 'Val-de-Marne (94)', 'Val-d\\'Oise (95)'],
-  'Auvergne-Rhône-Alpes': ['Ain (01)', 'Allier (03)', 'Ardèche (07)', 'Cantal (15)', 'Drôme (26)', 'Isère (38)', 'Loire (42)', 'Haute-Loire (43)', 'Puy-de-Dôme (63)', 'Rhône (69)', 'Savoie (73)', 'Haute-Savoie (74)'],
-  'Nouvelle-Aquitaine': ['Charente (16)', 'Charente-Maritime (17)', 'Corrèze (19)', 'Creuse (23)', 'Dordogne (24)', 'Gironde (33)', 'Landes (40)', 'Lot-et-Garonne (47)', 'Pyrénées-Atlantiques (64)', 'Deux-Sèvres (79)', 'Vienne (86)', 'Haute-Vienne (87)'],
-  'Occitanie': ['Ariège (09)', 'Aude (11)', 'Aveyron (12)', 'Gard (30)', 'Haute-Garonne (31)', 'Gers (32)', 'Hérault (34)', 'Lot (46)', 'Lozère (48)', 'Hautes-Pyrénées (65)', 'Pyrénées-Orientales (66)', 'Tarn (81)', 'Tarn-et-Garonne (82)'],
-  'Hauts-de-France': ['Aisne (02)', 'Nord (59)', 'Oise (60)', 'Pas-de-Calais (62)', 'Somme (80)'],
-  'Provence-Alpes-Côte d\\'Azur': ['Alpes-de-Haute-Provence (04)', 'Hautes-Alpes (05)', 'Alpes-Maritimes (06)', 'Bouches-du-Rhône (13)', 'Var (83)', 'Vaucluse (84)'],
-  'Grand Est': ['Ardennes (08)', 'Aube (10)', 'Marne (51)', 'Haute-Marne (52)', 'Meurthe-et-Moselle (54)', 'Meuse (55)', 'Moselle (57)', 'Bas-Rhin (67)', 'Haut-Rhin (68)', 'Vosges (88)'],
-  'Pays de la Loire': ['Loire-Atlantique (44)', 'Maine-et-Loire (49)', 'Mayenne (53)', 'Sarthe (72)', 'Vendée (85)'],
-  'Bretagne': ['Côtes-d\\'Armor (22)', 'Finistère (29)', 'Ille-et-Vilaine (35)', 'Morbihan (56)'],
-  'Normandie': ['Calvados (14)', 'Eure (27)', 'Manche (50)', 'Orne (61)', 'Seine-Maritime (76)'],
-  'Bourgogne-Franche-Comté': ['Côte-d\\'Or (21)', 'Doubs (25)', 'Jura (39)', 'Nièvre (58)', 'Haute-Saône (70)', 'Saône-et-Loire (71)', 'Yonne (89)', 'Territoire de Belfort (90)'],
-  'Centre-Val de Loire': ['Cher (18)', 'Eure-et-Loir (28)', 'Indre (36)', 'Indre-et-Loire (37)', 'Loir-et-Cher (41)', 'Loiret (45)'],
-  'Corse': ['Corse-du-Sud (2A)', 'Haute-Corse (2B)'],
-};
+interface Region {
+  id: number;
+  code: string;
+  name: string;
+  departements: Departement[];
+}
 
 export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZoneModalProps) {
   const [zoneType, setZoneType] = useState<ZoneType>('TERRITOIRE');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
   const [error, setError] = useState('');
+  const [regions, setRegions] = useState<Region[]>([]);
 
   // Formulaire Zone Territoire
   const [territoireData, setTerritoireData] = useState({
-    region: 'Île-de-France',
-    departements: [] as string[],
+    region_id: 0,
+    departement_ids: [] as number[],
     codes_postaux: '',
     start_date: '',
     end_date: ''
@@ -73,6 +55,27 @@ export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZo
     end_date: ''
   });
 
+  // Charger les régions au montage du composant
+  useEffect(() => {
+    if (isOpen) {
+      loadRegions();
+    }
+  }, [isOpen]);
+
+  const loadRegions = async () => {
+    setIsLoadingRegions(true);
+    const response = await apiClient.getRegions();
+
+    if (response.data && response.data.regions) {
+      setRegions(response.data.regions);
+      // Sélectionner la première région par défaut
+      if (response.data.regions.length > 0) {
+        setTerritoireData(prev => ({ ...prev, region_id: response.data.regions[0].id }));
+      }
+    }
+    setIsLoadingRegions(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -82,15 +85,20 @@ export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZo
 
     if (zoneType === 'TERRITOIRE') {
       // Zone territoire
+      const selectedRegion = regions.find(r => r.id === territoireData.region_id);
+      const selectedDepartements = selectedRegion?.departements.filter(d => territoireData.departement_ids.includes(d.id)) || [];
+
       zoneData = {
-        name: territoireData.region || 'Zone territoire',
+        name: selectedRegion?.name || 'Zone territoire',
         type: 'TERRITOIRE',
         code_postal: territoireData.codes_postaux || null,
         start_date: territoireData.start_date || null,
         end_date: territoireData.end_date || null,
         metadata: {
-          region: territoireData.region,
-          departements: territoireData.departements,
+          region_id: territoireData.region_id,
+          region: selectedRegion?.name,
+          departement_ids: territoireData.departement_ids,
+          departements: selectedDepartements.map(d => `${d.name} (${d.code})`),
           codes_postaux: territoireData.codes_postaux.split(',').map(cp => cp.trim()).filter(cp => cp),
         }
       };
@@ -126,18 +134,19 @@ export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZo
     }
   };
 
-  const handleDepartementToggle = (dept: string) => {
+  const handleDepartementToggle = (deptId: number) => {
     setTerritoireData(prev => ({
       ...prev,
-      departements: prev.departements.includes(dept)
-        ? prev.departements.filter(d => d !== dept)
-        : [...prev.departements, dept]
+      departement_ids: prev.departement_ids.includes(deptId)
+        ? prev.departement_ids.filter(id => id !== deptId)
+        : [...prev.departement_ids, deptId]
     }));
   };
 
   if (!isOpen) return null;
 
-  const availableDepartements = DEPARTEMENTS[territoireData.region] || [];
+  const selectedRegion = regions.find(r => r.id === territoireData.region_id);
+  const availableDepartements = selectedRegion?.departements || [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -194,53 +203,58 @@ export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZo
           {zoneType === 'TERRITOIRE' ? (
             // === FORMULAIRE TERRITOIRE ===
             <>
-              {/* Région */}
-              <div>
-                <label htmlFor="region" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Région <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="region"
-                  value={territoireData.region}
-                  onChange={(e) => setTerritoireData(prev => ({ ...prev, region: e.target.value, departements: [] }))}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                  required
-                >
-                  {REGIONS.map(region => (
-                    <option key={region} value={region}>{region}</option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  DEV : Par défaut &quot;toutes les régions&quot; est coché
-                </p>
-              </div>
-
-              {/* Départements */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Départements
-                </label>
-                <div className="grid grid-cols-2 gap-2 p-4 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
-                  {availableDepartements.length > 0 ? (
-                    availableDepartements.map(dept => (
-                      <label key={dept} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={territoireData.departements.includes(dept)}
-                          onChange={() => handleDepartementToggle(dept)}
-                          className="w-4 h-4 text-green-600 focus:ring-green-500 rounded"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{dept}</span>
-                      </label>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 col-span-2">Sélectionnez une région pour voir les départements</p>
-                  )}
+              {isLoadingRegions ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement des régions...</p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  DEV : Tous les départements de cette région. Tous cochés par défaut selon la maquette.
-                </p>
-              </div>
+              ) : (
+                <>
+                  {/* Région */}
+                  <div>
+                    <label htmlFor="region" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Région <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="region"
+                      value={territoireData.region_id}
+                      onChange={(e) => setTerritoireData(prev => ({ ...prev, region_id: Number(e.target.value), departement_ids: [] }))}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    >
+                      {regions.map(region => (
+                        <option key={region.id} value={region.id}>{region.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Départements */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Départements
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 p-4 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
+                      {availableDepartements.length > 0 ? (
+                        availableDepartements.map(dept => (
+                          <label key={dept.id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={territoireData.departement_ids.includes(dept.id)}
+                              onChange={() => handleDepartementToggle(dept.id)}
+                              className="w-4 h-4 text-green-600 focus:ring-green-500 rounded"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{dept.name} ({dept.code})</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 col-span-2">Sélectionnez une région pour voir les départements</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Codes Postaux */}
               <div>

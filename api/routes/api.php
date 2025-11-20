@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\QuestionController;
 use App\Http\Controllers\Api\QuizController;
+use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\UploadController;
@@ -85,6 +86,10 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::post('zones', [ZoneController::class, 'store']);
     Route::put('zones/{id}', [ZoneController::class, 'update']);
     Route::delete('zones/{id}', [ZoneController::class, 'destroy']);
+
+    // Regions routes
+    Route::get('regions', [RegionController::class, 'index']);
+    Route::get('regions/{id}', [RegionController::class, 'show']);
 
     // Email Templates routes
     Route::get('email-templates', [EmailTemplateController::class, 'index']);

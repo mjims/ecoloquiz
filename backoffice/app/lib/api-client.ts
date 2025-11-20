@@ -190,6 +190,19 @@ class ApiClient {
     });
   }
 
+  // Regions endpoints
+  async getRegions() {
+    return this.request<any>('/regions', {
+      method: 'GET',
+    });
+  }
+
+  async getRegion(id: number) {
+    return this.request<any>(`/regions/${id}`, {
+      method: 'GET',
+    });
+  }
+
   // Upload endpoints
   async uploadImage(file: File) {
     const formData = new FormData();
