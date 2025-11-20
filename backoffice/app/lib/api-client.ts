@@ -438,6 +438,47 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Gifts endpoints
+  async getGifts(page: number = 1, perPage: number = 15, level_id?: string, zone_id?: string, company_name?: string) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      per_page: perPage.toString()
+    });
+    if (level_id) params.append('level_id', level_id);
+    if (zone_id) params.append('zone_id', zone_id);
+    if (company_name) params.append('company_name', company_name);
+
+    return this.request<any>(`/gifts?${params.toString()}`, {
+      method: 'GET',
+    });
+  }
+
+  async getGift(id: string) {
+    return this.request<any>(`/gifts/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async createGift(giftData: any) {
+    return this.request<any>('/gifts', {
+      method: 'POST',
+      body: JSON.stringify(giftData),
+    });
+  }
+
+  async updateGift(id: string, giftData: any) {
+    return this.request<any>(`/gifts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(giftData),
+    });
+  }
+
+  async deleteGift(id: string) {
+    return this.request<any>(`/gifts/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

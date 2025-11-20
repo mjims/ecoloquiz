@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\EmailTypeController;
+use App\Http\Controllers\Api\GiftController;
 use App\Http\Controllers\Api\LevelController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PasswordController;
@@ -111,6 +112,13 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::post('pages', [PageController::class, 'store']);
     Route::put('pages/{id}', [PageController::class, 'update']);
     Route::delete('pages/{id}', [PageController::class, 'destroy']);
+
+    // Gifts routes
+    Route::get('gifts', [GiftController::class, 'index']);
+    Route::get('gifts/{id}', [GiftController::class, 'show']);
+    Route::post('gifts', [GiftController::class, 'store']);
+    Route::put('gifts/{id}', [GiftController::class, 'update']);
+    Route::delete('gifts/{id}', [GiftController::class, 'destroy']);
 });
 
 // Permissions Management - Requires permissions.edit permission

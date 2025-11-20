@@ -13,17 +13,46 @@ class Gift extends Model
 
     protected $table = 'gifts';
 
-    protected $fillable = ['id', 'name', 'company_name', 'siret', 'image_url', 'description', 'quantity', 'expiration_date', 'metadata'];
+    protected $fillable = [
+        'id',
+        'code',
+        'name',
+        'company_name',
+        'siret',
+        'contact_name',
+        'contact_phone',
+        'contact_email',
+        'start_date',
+        'end_date',
+        'level_id',
+        'image_url',
+        'description',
+        'total_quantity',
+        'metadata'
+    ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'expiration_date' => 'date',
+        'total_quantity' => 'integer',
+        'start_date' => 'date',
+        'end_date' => 'date',
         'metadata' => 'array',
-        'created_at' => 'datetime', 'updated_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function allocations()
     {
         return $this->hasMany(Allocation::class, 'gift_id');
+    }
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
+
+    // Helper pour récupérer les zones depuis metadata
+    public function getZonesAttribute()
+    {
+        return $this->metadata['zones'] ?? [];
     }
 }
