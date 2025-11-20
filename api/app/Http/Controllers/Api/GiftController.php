@@ -101,7 +101,7 @@ class GiftController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'level_id' => 'nullable|uuid|exists:levels,id',
-            'image_url' => 'nullable|string|max:500',
+            'image_url' => 'nullable|string', // Pas de limite pour supporter base64
             'description' => 'nullable|string',
             'total_quantity' => 'required|integer|min:0',
             'metadata' => 'nullable|array',
@@ -149,7 +149,7 @@ class GiftController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'level_id' => 'nullable|uuid|exists:levels,id',
-            'image_url' => 'nullable|string|max:500',
+            'image_url' => 'nullable|string', // Pas de limite pour supporter base64
             'description' => 'nullable|string',
             'total_quantity' => 'sometimes|required|integer|min:0',
             'metadata' => 'nullable|array',
