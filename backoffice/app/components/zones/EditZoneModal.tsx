@@ -10,66 +10,60 @@ interface EditZoneModalProps {
   onSuccess: () => void;
 }
 
-// Données de base pour les régions de France (simplifiée)
-const REGIONS = [
-  'Île-de-France',
-  'Auvergne-Rhône-Alpes',
-  'Nouvelle-Aquitaine',
-  'Occitanie',
-  'Hauts-de-France',
-  'Provence-Alpes-Côte d\\'Azur',
-  'Grand Est',
-  'Pays de la Loire',
-  'Bretagne',
-  'Normandie',
-  'Bourgogne-Franche-Comté',
-  'Centre-Val de Loire',
-  'Corse',
-];
+interface Departement {
+  id: number;
+  code: string;
+  name: string;
+  region_id: number;
+}
 
-// Départements par région (liste complète des 13 régions métropolitaines)
-const DEPARTEMENTS: Record<string, string[]> = {
-  'Île-de-France': ['Paris (75)', 'Seine-et-Marne (77)', 'Yvelines (78)', 'Essonne (91)', 'Hauts-de-Seine (92)', 'Seine-Saint-Denis (93)', 'Val-de-Marne (94)', 'Val-d\\'Oise (95)'],
-  'Auvergne-Rhône-Alpes': ['Ain (01)', 'Allier (03)', 'Ardèche (07)', 'Cantal (15)', 'Drôme (26)', 'Isère (38)', 'Loire (42)', 'Haute-Loire (43)', 'Puy-de-Dôme (63)', 'Rhône (69)', 'Savoie (73)', 'Haute-Savoie (74)'],
-  'Nouvelle-Aquitaine': ['Charente (16)', 'Charente-Maritime (17)', 'Corrèze (19)', 'Creuse (23)', 'Dordogne (24)', 'Gironde (33)', 'Landes (40)', 'Lot-et-Garonne (47)', 'Pyrénées-Atlantiques (64)', 'Deux-Sèvres (79)', 'Vienne (86)', 'Haute-Vienne (87)'],
-  'Occitanie': ['Ariège (09)', 'Aude (11)', 'Aveyron (12)', 'Gard (30)', 'Haute-Garonne (31)', 'Gers (32)', 'Hérault (34)', 'Lot (46)', 'Lozère (48)', 'Hautes-Pyrénées (65)', 'Pyrénées-Orientales (66)', 'Tarn (81)', 'Tarn-et-Garonne (82)'],
-  'Hauts-de-France': ['Aisne (02)', 'Nord (59)', 'Oise (60)', 'Pas-de-Calais (62)', 'Somme (80)'],
-  'Provence-Alpes-Côte d\\'Azur': ['Alpes-de-Haute-Provence (04)', 'Hautes-Alpes (05)', 'Alpes-Maritimes (06)', 'Bouches-du-Rhône (13)', 'Var (83)', 'Vaucluse (84)'],
-  'Grand Est': ['Ardennes (08)', 'Aube (10)', 'Marne (51)', 'Haute-Marne (52)', 'Meurthe-et-Moselle (54)', 'Meuse (55)', 'Moselle (57)', 'Bas-Rhin (67)', 'Haut-Rhin (68)', 'Vosges (88)'],
-  'Pays de la Loire': ['Loire-Atlantique (44)', 'Maine-et-Loire (49)', 'Mayenne (53)', 'Sarthe (72)', 'Vendée (85)'],
-  'Bretagne': ['Côtes-d\\'Armor (22)', 'Finistère (29)', 'Ille-et-Vilaine (35)', 'Morbihan (56)'],
-  'Normandie': ['Calvados (14)', 'Eure (27)', 'Manche (50)', 'Orne (61)', 'Seine-Maritime (76)'],
-  'Bourgogne-Franche-Comté': ['Côte-d\\'Or (21)', 'Doubs (25)', 'Jura (39)', 'Nièvre (58)', 'Haute-Saône (70)', 'Saône-et-Loire (71)', 'Yonne (89)', 'Territoire de Belfort (90)'],
-  'Centre-Val de Loire': ['Cher (18)', 'Eure-et-Loir (28)', 'Indre (36)', 'Indre-et-Loire (37)', 'Loir-et-Cher (41)', 'Loiret (45)'],
-  'Corse': ['Corse-du-Sud (2A)', 'Haute-Corse (2B)'],
-};
+interface Region {
+  id: number;
+  code: string;
+  name: string;
+  departements: Departement[];
+}
 
 export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: EditZoneModalProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
   const [error, setError] = useState('');
   const [zoneType, setZoneType] = useState<'TERRITOIRE' | 'ENTREPRISE'>('TERRITOIRE');
+  const [regions, setRegions] = useState<Region[]>([]);
 
   // Données du formulaire
   const [formData, setFormData] = useState<any>({});
 
   useEffect(() => {
     if (isOpen && zoneId) {
-      loadZone();
+      loadRegionsAndZone();
     }
   }, [isOpen, zoneId]);
 
-  const loadZone = async () => {
+  const loadRegionsAndZone = async () => {
     setIsLoading(true);
+    setIsLoadingRegions(true);
     setError('');
 
-    const response = await apiClient.getZone(zoneId);
+    // Charger les régions en parallèle avec la zone
+    const [regionsResponse, zoneResponse] = await Promise.all([
+      apiClient.getRegions(),
+      apiClient.getZone(zoneId)
+    ]);
 
-    if (response.error) {
-      setError(response.error);
+    // Traiter les régions
+    if (regionsResponse.data && regionsResponse.data.regions) {
+      setRegions(regionsResponse.data.regions);
+    }
+    setIsLoadingRegions(false);
+
+    // Traiter la zone
+    if (zoneResponse.error) {
+      setError(zoneResponse.error);
       setIsLoading(false);
-    } else if (response.data) {
-      const zone = response.data.zone || response.data;
+    } else if (zoneResponse.data) {
+      const zone = zoneResponse.data.zone || zoneResponse.data;
 
       // Déterminer le type
       if (zone.type === 'ENTREPRISE') {
@@ -89,8 +83,8 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
       } else {
         setZoneType('TERRITOIRE');
         setFormData({
-          region: zone.metadata?.region || 'Île-de-France',
-          departements: zone.metadata?.departements || [],
+          region_id: zone.metadata?.region_id || 0,
+          departement_ids: zone.metadata?.departement_ids || [],
           codes_postaux: zone.metadata?.codes_postaux?.join(', ') || zone.code_postal || '',
           start_date: zone.start_date ? new Date(zone.start_date).toISOString().split('T')[0] : '',
           end_date: zone.end_date ? new Date(zone.end_date).toISOString().split('T')[0] : '',
@@ -127,15 +121,20 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
         }
       };
     } else {
+      const selectedRegion = regions.find(r => r.id === formData.region_id);
+      const selectedDepartements = selectedRegion?.departements.filter(d => formData.departement_ids.includes(d.id)) || [];
+
       updateData = {
-        name: formData.region || 'Zone territoire',
+        name: selectedRegion?.name || 'Zone territoire',
         type: 'TERRITOIRE',
         code_postal: formData.codes_postaux || null,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         metadata: {
-          region: formData.region,
-          departements: formData.departements,
+          region_id: formData.region_id,
+          region: selectedRegion?.name,
+          departement_ids: formData.departement_ids,
+          departements: selectedDepartements.map(d => `${d.name} (${d.code})`),
           codes_postaux: formData.codes_postaux.split(',').map((cp: string) => cp.trim()).filter((cp: string) => cp),
         }
       };
@@ -152,18 +151,19 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
     }
   };
 
-  const handleDepartementToggle = (dept: string) => {
+  const handleDepartementToggle = (deptId: number) => {
     setFormData((prev: any) => ({
       ...prev,
-      departements: prev.departements.includes(dept)
-        ? prev.departements.filter((d: string) => d !== dept)
-        : [...prev.departements, dept]
+      departement_ids: prev.departement_ids.includes(deptId)
+        ? prev.departement_ids.filter((id: number) => id !== deptId)
+        : [...prev.departement_ids, deptId]
     }));
   };
 
   if (!isOpen) return null;
 
-  const availableDepartements = DEPARTEMENTS[formData.region] || [];
+  const selectedRegion = regions.find(r => r.id === formData.region_id);
+  const availableDepartements = selectedRegion?.departements || [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -208,86 +208,100 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
             {zoneType === 'TERRITOIRE' ? (
               // === FORMULAIRE TERRITOIRE ===
               <>
-                <div>
-                  <label htmlFor="region" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Région <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="region"
-                    value={formData.region}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, region: e.target.value, departements: [] }))}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                    required
-                  >
-                    {REGIONS.map(region => (
-                      <option key={region} value={region}>{region}</option>
-                    ))}
-                  </select>
-                </div>
+                {isLoadingRegions ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                      <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement des régions...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label htmlFor="region" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Région <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="region"
+                        value={formData.region_id}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, region_id: Number(e.target.value), departement_ids: [] }))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      >
+                        {regions.map(region => (
+                          <option key={region.id} value={region.id}>{region.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Départements
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 p-4 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
-                    {availableDepartements.length > 0 ? (
-                      availableDepartements.map(dept => (
-                        <label key={dept} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.departements?.includes(dept) || false}
-                            onChange={() => handleDepartementToggle(dept)}
-                            className="w-4 h-4 text-green-600 focus:ring-green-500 rounded"
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{dept}</span>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Départements
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 p-4 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
+                        {availableDepartements.length > 0 ? (
+                          availableDepartements.map(dept => (
+                            <label key={dept.id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.departement_ids?.includes(dept.id) || false}
+                                onChange={() => handleDepartementToggle(dept.id)}
+                                className="w-4 h-4 text-green-600 focus:ring-green-500 rounded"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{dept.name} ({dept.code})</span>
+                            </label>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 col-span-2">Sélectionnez une région</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="codes_postaux" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Codes Postaux
+                      </label>
+                      <input
+                        type="text"
+                        id="codes_postaux"
+                        value={formData.codes_postaux}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, codes_postaux: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Ex: 94000, 94300, 94550, 94120"
+                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Séparez les codes postaux par des virgules
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Début
                         </label>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 col-span-2">Sélectionnez une région</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="codes_postaux" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Codes Postaux
-                  </label>
-                  <input
-                    type="text"
-                    id="codes_postaux"
-                    value={formData.codes_postaux}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, codes_postaux: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Ex: 94000, 94300, 94550, 94120"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Début
-                    </label>
-                    <input
-                      type="date"
-                      id="start_date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, start_date: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Fin
-                    </label>
-                    <input
-                      type="date"
-                      id="end_date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, end_date: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
+                        <input
+                          type="date"
+                          id="start_date"
+                          value={formData.start_date}
+                          onChange={(e) => setFormData((prev: any) => ({ ...prev, start_date: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Fin
+                        </label>
+                        <input
+                          type="date"
+                          id="end_date"
+                          value={formData.end_date}
+                          onChange={(e) => setFormData((prev: any) => ({ ...prev, end_date: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               // === FORMULAIRE ENTREPRISE ===
@@ -397,6 +411,9 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Sélection de zone"
                     />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      DEV : Sélection de zone comme l&apos;Angleterre (carte interactive à implémenter)
+                    </p>
                   </div>
                 </div>
 
