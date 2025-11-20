@@ -127,7 +127,7 @@ export default function EditZoneModal({ isOpen, zoneId, onClose, onSuccess }: Ed
       updateData = {
         name: selectedRegion?.name || 'Zone territoire',
         type: 'TERRITOIRE',
-        code_postal: formData.codes_postaux || null,
+        code_postal: null, // Les codes postaux sont dans metadata pour les zones territoire
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         metadata: {

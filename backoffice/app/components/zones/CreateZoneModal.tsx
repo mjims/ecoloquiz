@@ -91,7 +91,7 @@ export default function CreateZoneModal({ isOpen, onClose, onSuccess }: CreateZo
       zoneData = {
         name: selectedRegion?.name || 'Zone territoire',
         type: 'TERRITOIRE',
-        code_postal: territoireData.codes_postaux || null,
+        code_postal: null, // Les codes postaux sont dans metadata pour les zones territoire
         start_date: territoireData.start_date || null,
         end_date: territoireData.end_date || null,
         metadata: {
