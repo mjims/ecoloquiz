@@ -132,6 +132,19 @@ class ApiClient {
     });
   }
 
+  async validateAnswer(quizId: string, questionId: string, answerId: string) {
+    return this.request<{
+      is_correct: boolean;
+      points_earned: number;
+      correct_answer_id: string;
+      correct_answer_text: string;
+      explanation?: string;
+    }>(`/player/quiz/${quizId}/validate-answer`, {
+      method: 'POST',
+      body: JSON.stringify({ question_id: questionId, answer_id: answerId }),
+    });
+  }
+
   async submitQuiz(quizId: string, answers: Record<string, string>) {
     return this.request<{
       score: number;

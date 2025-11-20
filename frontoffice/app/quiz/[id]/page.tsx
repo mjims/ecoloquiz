@@ -10,7 +10,6 @@ interface AnswerOption {
   id: string;
   text: string;
   question_id: string;
-  is_correct: boolean;
 }
 
 interface Question {
@@ -32,6 +31,14 @@ interface Quiz {
   questions: Question[];
 }
 
+interface ValidationResult {
+  is_correct: boolean;
+  points_earned: number;
+  correct_answer_id: string;
+  correct_answer_text: string;
+  explanation?: string;
+}
+
 export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
@@ -43,8 +50,8 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [isCorrectAnswer, setIsCorrectAnswer] = useState(false);
-  const [pointsEarned, setPointsEarned] = useState(0);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -70,6 +77,7 @@ export default function QuizPage() {
       const currentQuestionId = quiz.questions[currentQuestionIndex].id;
       setSelectedOption(answers[currentQuestionId] || null);
       setShowFeedback(false);
+      setValidationResult(null);
     }
   }, [currentQuestionIndex, quiz, answers]);
 
@@ -78,25 +86,31 @@ export default function QuizPage() {
     setSelectedOption(optionId);
   };
 
-  const handleValidate = () => {
-    if (!quiz || !selectedOption) return;
+  const handleValidate = async () => {
+    if (!quiz || !selectedOption || isValidating) return;
 
     const currentQuestion = quiz.questions[currentQuestionIndex];
-    const selectedOptionData = currentQuestion.options.find(opt => opt.id === selectedOption);
 
-    // Check if answer is correct
-    const isCorrect = selectedOptionData?.is_correct || false;
-    setIsCorrectAnswer(isCorrect);
-    setPointsEarned(isCorrect ? 5 : -10);
+    setIsValidating(true);
+    try {
+      // Call API to validate answer
+      const response = await apiClient.validateAnswer(quizId, currentQuestion.id, selectedOption);
 
-    // Save the answer
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: selectedOption
-    }));
+      if (response.data) {
+        setValidationResult(response.data);
+        setShowFeedback(true);
 
-    // Show feedback
-    setShowFeedback(true);
+        // Save the answer
+        setAnswers(prev => ({
+          ...prev,
+          [currentQuestion.id]: selectedOption
+        }));
+      }
+    } catch (error) {
+      console.error('Error validating answer:', error);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleContinue = () => {
@@ -107,6 +121,7 @@ export default function QuizPage() {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedOption(null);
       setShowFeedback(false);
+      setValidationResult(null);
     } else {
       // Submit quiz
       submitQuiz();
@@ -120,6 +135,7 @@ export default function QuizPage() {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedOption(null);
       setShowFeedback(false);
+      setValidationResult(null);
     } else {
       // Submit quiz even with skipped questions
       submitQuiz();
@@ -168,7 +184,6 @@ export default function QuizPage() {
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
-  const correctOption = currentQuestion.options.find(opt => opt.is_correct);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
@@ -204,17 +219,17 @@ export default function QuizPage() {
           </div>
 
           {/* Feedback Banner (shown after validation) */}
-          {showFeedback && (
+          {showFeedback && validationResult && (
             <div className={`mb-6 rounded-lg p-4 flex items-center justify-between ${
-              isCorrectAnswer
+              validationResult.is_correct
                 ? 'bg-green-50 border-2 border-green-200'
                 : 'bg-red-50 border-2 border-red-200'
             }`}>
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded flex items-center justify-center ${
-                  isCorrectAnswer ? 'bg-green-500' : 'bg-red-500'
+                  validationResult.is_correct ? 'bg-green-500' : 'bg-red-500'
                 }`}>
-                  {isCorrectAnswer ? (
+                  {validationResult.is_correct ? (
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -225,22 +240,22 @@ export default function QuizPage() {
                   )}
                 </div>
                 <span className={`text-sm lg:text-base font-medium ${
-                  isCorrectAnswer ? 'text-green-800' : 'text-red-800'
+                  validationResult.is_correct ? 'text-green-800' : 'text-red-800'
                 }`}>
-                  {isCorrectAnswer ? 'Bonne réponse' : 'Mauvaise réponse'}
+                  {validationResult.is_correct ? 'Bonne réponse' : 'Mauvaise réponse'}
                 </span>
               </div>
               <span className={`text-sm lg:text-base font-bold ${
-                isCorrectAnswer ? 'text-green-700' : 'text-red-700'
+                validationResult.is_correct ? 'text-green-700' : 'text-red-700'
               }`}>
-                {pointsEarned > 0 ? '+' : ''}{pointsEarned} points
+                {validationResult.points_earned > 0 ? '+' : ''}{validationResult.points_earned} points
               </span>
             </div>
           )}
 
           {/* Question Card */}
           <div className="bg-white rounded-lg shadow-lg p-6 lg:p-8">
-            {showFeedback && (
+            {showFeedback && validationResult && (
               <div className="mb-6 flex items-center gap-2 text-gray-600">
                 <span className="text-2xl">🤔</span>
                 <span className="text-sm lg:text-base">Le savais-tu ?</span>
@@ -260,15 +275,15 @@ export default function QuizPage() {
             </h3>
 
             {/* Explanation (shown after validation) */}
-            {showFeedback && currentQuestion.explanation && (
+            {showFeedback && validationResult && validationResult.explanation && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-sm lg:text-base text-gray-700 leading-relaxed">
-                  {currentQuestion.explanation}
+                  {validationResult.explanation}
                 </p>
               </div>
             )}
 
-            {showFeedback && (
+            {showFeedback && validationResult && (
               <div className="mb-4">
                 <p className="text-sm lg:text-base font-medium text-gray-700">
                   La bonne réponse était :
@@ -280,14 +295,15 @@ export default function QuizPage() {
             <div className="space-y-3 mb-8">
               {currentQuestion.options.map((option) => {
                 const isSelected = selectedOption === option.id;
-                const isCorrectOption = option.is_correct;
+                const isCorrectOption = showFeedback && validationResult && option.id === validationResult.correct_answer_id;
+                const isIncorrectSelection = showFeedback && validationResult && isSelected && !validationResult.is_correct;
 
                 let optionStyle = 'bg-white border-gray-300';
 
                 if (showFeedback) {
                   if (isCorrectOption) {
                     optionStyle = 'bg-green-50 border-green-500';
-                  } else if (isSelected && !isCorrectOption) {
+                  } else if (isIncorrectSelection) {
                     optionStyle = 'bg-red-50 border-red-500';
                   }
                 } else {
@@ -307,11 +323,11 @@ export default function QuizPage() {
                       showFeedback ? 'cursor-default' : ''
                     }`}
                   >
-                    {showFeedback && (
+                    {showFeedback && validationResult && (
                       <div className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center ${
                         isCorrectOption
                           ? 'bg-green-500'
-                          : isSelected
+                          : isIncorrectSelection
                             ? 'bg-red-500'
                             : 'bg-transparent'
                       }`}>
@@ -320,7 +336,7 @@ export default function QuizPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         )}
-                        {isSelected && !isCorrectOption && (
+                        {isIncorrectSelection && (
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -344,14 +360,14 @@ export default function QuizPage() {
                 </button>
                 <button
                   onClick={handleValidate}
-                  disabled={!selectedOption}
+                  disabled={!selectedOption || isValidating}
                   className={`flex-1 font-medium py-3 px-6 rounded-lg transition-colors text-sm lg:text-base ${
-                    selectedOption
+                    selectedOption && !isValidating
                       ? 'bg-teal-600 hover:bg-teal-700 text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  Valider
+                  {isValidating ? 'Validation...' : 'Valider'}
                 </button>
               </div>
             ) : (

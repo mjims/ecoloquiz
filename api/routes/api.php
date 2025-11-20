@@ -46,6 +46,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('player/suggested-quiz', [PlayerDashboardController::class, 'suggestedQuiz']);
     Route::get('player/progression', [PlayerDashboardController::class, 'progression']);
     Route::get('player/quiz/{id}/play', [PlayerDashboardController::class, 'getQuizToPlay']);
+    Route::post('player/quiz/{quizId}/validate-answer', [PlayerDashboardController::class, 'validateAnswer']);
     Route::post('player/quiz/{id}/submit', [PlayerDashboardController::class, 'submitQuiz']);
 });
 

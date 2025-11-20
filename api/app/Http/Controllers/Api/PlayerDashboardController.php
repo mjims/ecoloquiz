@@ -194,9 +194,93 @@ class PlayerDashboardController extends Controller
     {
         $quiz = Quiz::with(['theme', 'level', 'questions.options'])->findOrFail($id);
 
-        // Return quiz with all data including is_correct
-        // Frontend will handle not showing it until after validation
-        return response()->json(['quiz' => $quiz]);
+        // Transform the quiz to hide is_correct field from options
+        $quizData = $quiz->toArray();
+
+        // Remove is_correct from all answer options
+        if (isset($quizData['questions'])) {
+            foreach ($quizData['questions'] as &$question) {
+                if (isset($question['options'])) {
+                    foreach ($question['options'] as &$option) {
+                        unset($option['is_correct']);
+                    }
+                }
+            }
+        }
+
+        return response()->json(['quiz' => $quizData]);
+    }
+
+    /**
+     * Validate a single answer
+     *
+     * @OA\Post(
+     *   path="/api/player/quiz/{quizId}/validate-answer",
+     *   tags={"Player Dashboard"},
+     *   summary="Validate a single quiz answer",
+     *   description="Validates a single answer and returns feedback",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="quizId",
+     *     in="path",
+     *     description="Quiz ID",
+     *     required=true,
+     *     @OA\Schema(type="string", format="uuid")
+     *   ),
+     *
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       @OA\Property(property="question_id", type="string", format="uuid"),
+     *       @OA\Property(property="answer_id", type="string", format="uuid")
+     *     )
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Answer validated successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="is_correct", type="boolean", example=true),
+     *       @OA\Property(property="points_earned", type="integer", example=5),
+     *       @OA\Property(property="correct_answer_id", type="string", format="uuid"),
+     *       @OA\Property(property="correct_answer_text", type="string"),
+     *       @OA\Property(property="explanation", type="string")
+     *     )
+     *   ),
+     *   @OA\Response(response=404, description="Question or answer not found"),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function validateAnswer(Request $request, $quizId)
+    {
+        $questionId = $request->input('question_id');
+        $answerId = $request->input('answer_id');
+
+        // Find the question
+        $question = Question::with('options')
+            ->where('id', $questionId)
+            ->where('quiz_id', $quizId)
+            ->firstOrFail();
+
+        // Find the correct option
+        $correctOption = $question->options->where('is_correct', true)->first();
+
+        if (!$correctOption) {
+            return response()->json(['error' => 'No correct answer found for this question'], 400);
+        }
+
+        // Check if user's answer is correct
+        $isCorrect = $answerId === $correctOption->id;
+        $pointsEarned = $isCorrect ? 5 : -10;
+
+        return response()->json([
+            'is_correct' => $isCorrect,
+            'points_earned' => $pointsEarned,
+            'correct_answer_id' => $correctOption->id,
+            'correct_answer_text' => $correctOption->text,
+            'explanation' => $question->explanation
+        ]);
     }
 
     /**
