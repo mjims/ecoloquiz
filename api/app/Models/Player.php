@@ -36,4 +36,9 @@ class Player extends Model
     {
         return $this->hasMany(Allocation::class, 'player_id');
     }
+
+    public function answers()
+    {
+        return $this->hasMany(PlayerAnswer::class, 'player_id');
+    }
 }

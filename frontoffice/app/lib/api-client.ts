@@ -132,6 +132,12 @@ class ApiClient {
     });
   }
 
+  async getNextQuestion(themeId: string) {
+    return this.request<any>(`/player/theme/${themeId}/next-question`, {
+      method: 'GET',
+    });
+  }
+
   async validateAnswer(quizId: string, questionId: string, answerId: string) {
     return this.request<{
       is_correct: boolean;
@@ -139,6 +145,7 @@ class ApiClient {
       correct_answer_id: string;
       correct_answer_text: string;
       explanation?: string;
+      new_total_points?: number;
     }>(`/player/quiz/${quizId}/validate-answer`, {
       method: 'POST',
       body: JSON.stringify({ question_id: questionId, answer_id: answerId }),

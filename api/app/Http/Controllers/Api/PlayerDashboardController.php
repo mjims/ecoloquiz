@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnswerOption;
 use App\Models\Level;
 use App\Models\Player;
+use App\Models\PlayerAnswer;
 use App\Models\Question;
 use App\Models\Quiz;
+use App\Models\Theme;
 use Illuminate\Http\Request;
 
 class PlayerDashboardController extends Controller
@@ -163,6 +166,161 @@ class PlayerDashboardController extends Controller
     }
 
     /**
+     * Get next unanswered question for a theme
+     *
+     * @OA\Get(
+     *   path="/api/player/theme/{themeId}/next-question",
+     *   tags={"Player Dashboard"},
+     *   summary="Get next unanswered question for a theme",
+     *   description="Returns the next unanswered question based on player's current level",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Parameter(
+     *     name="themeId",
+     *     in="path",
+     *     description="Theme ID",
+     *     required=true,
+     *     @OA\Schema(type="string", format="uuid")
+     *   ),
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Question retrieved successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="question", type="object"),
+     *       @OA\Property(property="quiz", type="object"),
+     *       @OA\Property(property="theme", type="object"),
+     *       @OA\Property(property="level", type="object"),
+     *       @OA\Property(property="progress", type="object")
+     *     )
+     *   ),
+     *   @OA\Response(response=404, description="No more questions available"),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function getNextQuestion(Request $request, $themeId)
+    {
+        $user = $request->user();
+
+        // Get or create player
+        $player = Player::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'points' => 0,
+                'current_level' => 'decouverte',
+                'last_played' => null,
+                'zone_id' => null
+            ]
+        );
+
+        // Get the theme
+        $theme = Theme::findOrFail($themeId);
+
+        // Get all levels ordered by order
+        $levels = Level::orderBy('order', 'asc')->get();
+
+        // Find current level
+        $currentLevel = Level::where('slug', $player->current_level)->first();
+        if (!$currentLevel) {
+            $currentLevel = $levels->first(); // Default to first level
+        }
+
+        // Try to find an unanswered question starting from current level
+        $question = null;
+        $quiz = null;
+        $level = null;
+
+        foreach ($levels as $lvl) {
+            // Skip levels before current level
+            if ($lvl->order < $currentLevel->order) {
+                continue;
+            }
+
+            // Get all quizzes for this theme and level
+            $quizzes = Quiz::where('theme_id', $themeId)
+                ->where('level_id', $lvl->id)
+                ->with(['questions.options'])
+                ->get();
+
+            // For each quiz, check if there are unanswered questions
+            foreach ($quizzes as $q) {
+                // Get all questions for this quiz
+                $questions = $q->questions;
+
+                // Get answered question IDs for this player
+                $answeredQuestionIds = PlayerAnswer::where('player_id', $player->id)
+                    ->whereIn('question_id', $questions->pluck('id'))
+                    ->pluck('question_id')
+                    ->toArray();
+
+                // Find first unanswered question
+                $unansweredQuestion = $questions->whereNotIn('id', $answeredQuestionIds)->first();
+
+                if ($unansweredQuestion) {
+                    $question = $unansweredQuestion;
+                    $quiz = $q;
+                    $level = $lvl;
+                    break 2; // Break out of both loops
+                }
+            }
+        }
+
+        if (!$question) {
+            // No more questions available for this theme
+            // Get other themes with available questions
+            $otherThemes = Theme::where('id', '!=', $themeId)->get();
+
+            return response()->json([
+                'message' => 'Vous avez terminé tous les niveaux de ce thème !',
+                'theme_completed' => true,
+                'other_themes' => $otherThemes
+            ], 200);
+        }
+
+        // Update player's current level if needed
+        if ($level->slug !== $player->current_level) {
+            $player->current_level = $level->slug;
+            $player->save();
+        }
+
+        // Remove is_correct from options
+        $questionData = $question->toArray();
+        if (isset($questionData['options'])) {
+            foreach ($questionData['options'] as &$option) {
+                unset($option['is_correct']);
+            }
+        }
+
+        // Calculate progress for this level
+        $totalQuestionsInLevel = Question::whereHas('quiz', function($q) use ($themeId, $level) {
+            $q->where('theme_id', $themeId)->where('level_id', $level->id);
+        })->count();
+
+        $answeredQuestionsInLevel = PlayerAnswer::where('player_id', $player->id)
+            ->whereHas('question', function($q) use ($themeId, $level) {
+                $q->whereHas('quiz', function($query) use ($themeId, $level) {
+                    $query->where('theme_id', $themeId)->where('level_id', $level->id);
+                });
+            })
+            ->count();
+
+        return response()->json([
+            'question' => $questionData,
+            'quiz' => [
+                'id' => $quiz->id,
+                'title' => $quiz->title
+            ],
+            'theme' => $theme,
+            'level' => $level,
+            'progress' => [
+                'answered' => $answeredQuestionsInLevel,
+                'total' => $totalQuestionsInLevel,
+                'percentage' => $totalQuestionsInLevel > 0 ? round(($answeredQuestionsInLevel / $totalQuestionsInLevel) * 100) : 0
+            ]
+        ]);
+    }
+
+    /**
      * Get quiz to play with questions and answer options
      *
      * @OA\Get(
@@ -255,14 +413,35 @@ class PlayerDashboardController extends Controller
      */
     public function validateAnswer(Request $request, $quizId)
     {
+        $user = $request->user();
         $questionId = $request->input('question_id');
         $answerId = $request->input('answer_id');
+
+        // Get or create player
+        $player = Player::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'points' => 0,
+                'current_level' => 'decouverte',
+                'last_played' => null,
+                'zone_id' => null
+            ]
+        );
 
         // Find the question
         $question = Question::with('options')
             ->where('id', $questionId)
             ->where('quiz_id', $quizId)
             ->firstOrFail();
+
+        // Check if player already answered this question
+        $existingAnswer = PlayerAnswer::where('player_id', $player->id)
+            ->where('question_id', $questionId)
+            ->first();
+
+        if ($existingAnswer) {
+            return response()->json(['error' => 'You have already answered this question'], 400);
+        }
 
         // Find the correct option
         $correctOption = $question->options->where('is_correct', true)->first();
@@ -275,12 +454,28 @@ class PlayerDashboardController extends Controller
         $isCorrect = $answerId === $correctOption->id;
         $pointsEarned = $isCorrect ? 5 : -10;
 
+        // Save player answer
+        PlayerAnswer::create([
+            'player_id' => $player->id,
+            'question_id' => $questionId,
+            'answer_id' => $answerId,
+            'is_correct' => $isCorrect,
+            'points_earned' => $pointsEarned,
+            'answered_at' => now()
+        ]);
+
+        // Update player points and last played
+        $player->points += $pointsEarned;
+        $player->last_played = now();
+        $player->save();
+
         return response()->json([
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
             'correct_answer_id' => $correctOption->id,
             'correct_answer_text' => $correctOption->text,
-            'explanation' => $question->explanation
+            'explanation' => $question->explanation,
+            'new_total_points' => $player->points
         ]);
     }
 

@@ -151,7 +151,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* CTA Button */}
-                    <Link href={`/quiz/${suggestedQuiz.id}`}>
+                    <Link href={`/play/${suggestedQuiz.theme_id}`}>
                       <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm lg:text-base mb-3">
                         Répondre au quiz pour un code promo
                       </button>

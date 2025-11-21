@@ -45,6 +45,7 @@ Route::middleware('auth:api')->group(function () {
     // Player Dashboard - Routes accessibles à tous les utilisateurs authentifiés
     Route::get('player/suggested-quiz', [PlayerDashboardController::class, 'suggestedQuiz']);
     Route::get('player/progression', [PlayerDashboardController::class, 'progression']);
+    Route::get('player/theme/{themeId}/next-question', [PlayerDashboardController::class, 'getNextQuestion']);
     Route::get('player/quiz/{id}/play', [PlayerDashboardController::class, 'getQuizToPlay']);
     Route::post('player/quiz/{quizId}/validate-answer', [PlayerDashboardController::class, 'validateAnswer']);
     Route::post('player/quiz/{id}/submit', [PlayerDashboardController::class, 'submitQuiz']);
