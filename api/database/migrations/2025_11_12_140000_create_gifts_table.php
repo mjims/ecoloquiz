@@ -13,10 +13,15 @@ class CreateGiftsTable extends Migration
             $table->string('name');
             $table->string('company_name')->nullable();
             $table->string('siret')->nullable();
+            $table->string('contact_name')->nullable();
+            $table->string('contact_phone')->nullable();
+            $table->string('contact_email')->nullable();
+            $table->string('level_id')->nullable();
             $table->string('image_url')->nullable();
             $table->text('description')->nullable();
-            $table->integer('quantity')->default(0);
-            $table->date('expiration_date')->nullable();
+            $table->integer('total_quantity')->default(0);
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
             $table->softDeletes();
