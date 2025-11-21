@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import ProtectedRoute from '../../components/ProtectedRoute';
 import { apiClient } from '@/lib/api-client';
 
 interface AnswerOption {
@@ -52,7 +53,7 @@ interface QuestionData {
   };
 }
 
-export default function PlayPage() {
+function PlayPageContent() {
   const params = useParams();
   const router = useRouter();
   const themeId = params.themeId as string;
@@ -411,5 +412,13 @@ export default function PlayPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function PlayPage() {
+  return (
+    <ProtectedRoute>
+      <PlayPageContent />
+    </ProtectedRoute>
   );
 }

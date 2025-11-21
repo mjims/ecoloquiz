@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import ProtectedRoute from '../components/ProtectedRoute';
 import { apiClient } from '@/lib/api-client';
 
 interface Quiz {
@@ -76,8 +77,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
+        <Header />
 
       <main className="flex-1 w-full px-4 py-6 lg:py-10">
         <div className="max-w-7xl mx-auto">
@@ -265,7 +267,8 @@ export default function Dashboard() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }
