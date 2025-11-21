@@ -166,6 +166,109 @@ class PlayerDashboardController extends Controller
     }
 
     /**
+     * Get current game in progress
+     *
+     * @OA\Get(
+     *   path="/api/player/current-game",
+     *   tags={"Player Dashboard"},
+     *   summary="Get current game in progress",
+     *   description="Returns the theme ID if player has a game in progress",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Current game retrieved successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="has_game_in_progress", type="boolean"),
+     *       @OA\Property(property="theme_id", type="string", format="uuid", nullable=true),
+     *       @OA\Property(property="theme_name", type="string", nullable=true)
+     *     )
+     *   ),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function getCurrentGame(Request $request)
+    {
+        $user = $request->user();
+
+        // Get or create player
+        $player = Player::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'points' => 0,
+                'current_level' => 'decouverte',
+                'last_played' => null,
+                'zone_id' => null
+            ]
+        );
+
+        // Get the last answered question's theme
+        $lastAnswer = PlayerAnswer::where('player_id', $player->id)
+            ->with('question.quiz.theme')
+            ->orderBy('answered_at', 'desc')
+            ->first();
+
+        if (!$lastAnswer || !$lastAnswer->question || !$lastAnswer->question->quiz || !$lastAnswer->question->quiz->theme) {
+            return response()->json([
+                'has_game_in_progress' => false,
+                'theme_id' => null,
+                'theme_name' => null
+            ]);
+        }
+
+        $themeId = $lastAnswer->question->quiz->theme->id;
+        $themeName = $lastAnswer->question->quiz->theme->name;
+
+        // Check if there are unanswered questions in this theme
+        $levels = Level::orderBy('order', 'asc')->get();
+        $currentLevel = Level::where('slug', $player->current_level)->first();
+        if (!$currentLevel) {
+            $currentLevel = $levels->first();
+        }
+
+        // Check for unanswered questions
+        $hasUnansweredQuestions = false;
+        foreach ($levels as $lvl) {
+            if ($lvl->order < $currentLevel->order) {
+                continue;
+            }
+
+            $quizzes = Quiz::where('theme_id', $themeId)
+                ->where('level_id', $lvl->id)
+                ->with(['questions'])
+                ->get();
+
+            foreach ($quizzes as $quiz) {
+                $answeredQuestionIds = PlayerAnswer::where('player_id', $player->id)
+                    ->whereIn('question_id', $quiz->questions->pluck('id'))
+                    ->pluck('question_id')
+                    ->toArray();
+
+                $unansweredQuestion = $quiz->questions->whereNotIn('id', $answeredQuestionIds)->first();
+
+                if ($unansweredQuestion) {
+                    $hasUnansweredQuestions = true;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$hasUnansweredQuestions) {
+            return response()->json([
+                'has_game_in_progress' => false,
+                'theme_id' => null,
+                'theme_name' => null
+            ]);
+        }
+
+        return response()->json([
+            'has_game_in_progress' => true,
+            'theme_id' => $themeId,
+            'theme_name' => $themeName
+        ]);
+    }
+
+    /**
      * Get next unanswered question for a theme
      *
      * @OA\Get(

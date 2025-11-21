@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesPermissionsSeeder::class,
             AdminUsersSeeder::class,
+            QuizQuestionsSeeder::class,
         ]);
 
         $this->command->info('✅ Tous les seeders exécutés avec succès !');

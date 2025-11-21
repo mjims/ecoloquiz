@@ -34,12 +34,23 @@ interface ProgressionData {
   }>;
 }
 
+interface CurrentGame {
+  has_game_in_progress: boolean;
+  theme_id: string | null;
+  theme_name: string | null;
+}
+
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [suggestedQuiz, setSuggestedQuiz] = useState<Quiz | null>(null);
   const [progressionData, setProgressionData] = useState<ProgressionData>({
     quizCompleted: 0,
     levels: [],
+  });
+  const [currentGame, setCurrentGame] = useState<CurrentGame>({
+    has_game_in_progress: false,
+    theme_id: null,
+    theme_name: null,
   });
 
   useEffect(() => {
@@ -57,6 +68,12 @@ export default function Dashboard() {
         const progressionResponse = await apiClient.getProgression();
         if (progressionResponse.data) {
           setProgressionData(progressionResponse.data);
+        }
+
+        // Fetch current game in progress
+        const currentGameResponse = await apiClient.getCurrentGame();
+        if (currentGameResponse.data) {
+          setCurrentGame(currentGameResponse.data);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -190,6 +207,15 @@ export default function Dashboard() {
                     <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
                   </div>
 
+                  {/* Continue Button - Mobile */}
+                  {currentGame.has_game_in_progress && currentGame.theme_id && (
+                    <Link href={`/play/${currentGame.theme_id}`}>
+                      <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm mb-4">
+                        Continuer le quiz : {currentGame.theme_name}
+                      </button>
+                    </Link>
+                  )}
+
                   {progressionData.levels.map((level) => (
                     <div key={level.level} className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -231,6 +257,15 @@ export default function Dashboard() {
                     <span className="text-4xl font-bold text-teal-600">{progressionData.quizCompleted}</span>
                     <span className="text-sm text-gray-600 ml-2">quiz terminés</span>
                   </div>
+
+                  {/* Continue Button - Desktop */}
+                  {currentGame.has_game_in_progress && currentGame.theme_id && (
+                    <Link href={`/play/${currentGame.theme_id}`}>
+                      <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm mb-4">
+                        Continuer le quiz : {currentGame.theme_name}
+                      </button>
+                    </Link>
+                  )}
 
                   {progressionData.levels.map((level) => (
                     <div key={level.level} className="space-y-2">

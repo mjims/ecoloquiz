@@ -126,6 +126,16 @@ class ApiClient {
     });
   }
 
+  async getCurrentGame() {
+    return this.request<{
+      has_game_in_progress: boolean;
+      theme_id: string | null;
+      theme_name: string | null;
+    }>('/player/current-game', {
+      method: 'GET',
+    });
+  }
+
   async getQuizToPlay(quizId: string) {
     return this.request<any>(`/player/quiz/${quizId}/play`, {
       method: 'GET',
