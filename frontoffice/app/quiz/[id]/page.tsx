@@ -73,13 +73,15 @@ export default function QuizPage() {
 
   useEffect(() => {
     // Load the answer for the current question if it exists
+    // Reset feedback state when navigating to a new question
     if (quiz && quiz.questions[currentQuestionIndex]) {
       const currentQuestionId = quiz.questions[currentQuestionIndex].id;
       setSelectedOption(answers[currentQuestionId] || null);
       setShowFeedback(false);
       setValidationResult(null);
     }
-  }, [currentQuestionIndex, quiz, answers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionIndex, quiz]);
 
   const handleOptionSelect = (optionId: string) => {
     if (showFeedback) return; // Prevent selection during feedback
