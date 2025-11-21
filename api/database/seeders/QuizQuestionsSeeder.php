@@ -15,11 +15,11 @@ class QuizQuestionsSeeder extends Seeder
     public function run(): void
     {
         // Get themes and levels
-        $themes = Theme::limit(4)->get();
+        $themes = Theme::orderBy('created_at', 'asc')->limit(4)->get();
         $levels = Level::orderBy('order')->get();
 
         if ($themes->isEmpty() || $levels->isEmpty()) {
-            $this->command->error('Please run ThemeSeeder and LevelSeeder first!');
+            $this->command->error('Please run LevelsSeeder and ThemesSeeder first!');
             return;
         }
 
