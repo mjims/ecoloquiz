@@ -29,7 +29,7 @@ class AdminUsersSeeder extends Seeder
                     'email' => 'superadmin@ecoloquiz.test',
                     'first_name' => 'Super',
                     'last_name' => 'Admin',
-                    'password' => Hash::make('SuperStrongPassword!123'), // change in prod
+                    'password' => Hash::make('SuperStrongPassword!123'),
                 ],
                 [
                     'id' => (string) Str::uuid(),
