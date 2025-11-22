@@ -6,6 +6,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { apiClient } from '@/lib/api-client';
+import { CheckCircle, XCircle, AlertCircle, ArrowRight, Star } from 'lucide-react';
 
 interface AnswerOption {
   id: string;
@@ -51,6 +52,7 @@ interface QuestionData {
     answered: number;
     total: number;
     percentage: number;
+    history: string[];
   };
 }
 
@@ -69,13 +71,18 @@ function PlayPageContent() {
   const [themeCompleted, setThemeCompleted] = useState(false);
   const [otherThemes, setOtherThemes] = useState<any[]>([]);
 
+  const [noQuestions, setNoQuestions] = useState(false);
+
   const fetchNextQuestion = async () => {
     setIsLoading(true);
     try {
       const response = await apiClient.getNextQuestion(themeId);
 
       if (response.data) {
-        if (response.data.theme_completed) {
+        if (response.data.no_questions) {
+          setNoQuestions(true);
+          setOtherThemes(response.data.other_themes || []);
+        } else if (response.data.theme_completed) {
           // Theme completed, show other themes
           setThemeCompleted(true);
           setOtherThemes(response.data.other_themes || []);
@@ -83,7 +90,8 @@ function PlayPageContent() {
           // Got next question
           setQuestionData(response.data);
           setSelectedOptions([]);
-          // Show checkboxes for QCM, radio for VRAI_FAUX
+          // Show checkboxes for QCM (multiple_choice), radio for VRAI_FAUX
+          // User wants checkboxes for all QCMs to allow multiple selections even if only one is correct (strict validation)
           setAllowMultipleAnswers(response.data.question?.type !== 'VRAI_FAUX');
           setShowFeedback(false);
           setValidationResult(null);
@@ -101,6 +109,7 @@ function PlayPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeId]);
 
+  // ... (handlers)
   const handleOptionSelect = (optionId: string) => {
     if (showFeedback) return; // Prevent selection during feedback
 
@@ -161,6 +170,50 @@ function PlayPageContent() {
     );
   }
 
+  if (noQuestions) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="text-6xl mb-6">🚧</div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Oups !</h1>
+            <p className="text-lg text-gray-600 mb-8">
+              Il n'y a pas encore de questions pour ce thème.
+            </p>
+
+            {otherThemes.length > 0 && (
+              <>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Essayez un autre thème :
+                </h2>
+                <div className="grid gap-4 mb-6">
+                  {otherThemes.map((theme: any) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => router.push(`/play/${theme.id}`)}
+                      className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+                    >
+                      {theme.title}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
+            >
+              Retour au dashboard
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (themeCompleted) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-50 to-white">
@@ -185,7 +238,7 @@ function PlayPageContent() {
                       onClick={() => router.push(`/play/${theme.id}`)}
                       className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
                     >
-                      {theme.name}
+                      {theme.title}
                     </button>
                   ))}
                 </div>
@@ -212,12 +265,20 @@ function PlayPageContent() {
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">Aucune question disponible</h1>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
-            >
-              Retour au dashboard
-            </button>
+            <div className="flex flex-col gap-3 justify-center items-center">
+              <button
+                onClick={() => router.push('/quiz')}
+                className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Choisir un autre thème
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="text-teal-600 hover:text-teal-700 font-medium"
+              >
+                Retour au dashboard
+              </button>
+            </div>
           </div>
         </main>
         <Footer />
@@ -236,28 +297,46 @@ function PlayPageContent() {
         <div className="max-w-4xl mx-auto">
           {/* Progress Bar */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400 text-xl">⭐</span>
-                <span className="text-sm font-medium text-gray-700">
-                  {questionData.level.name}
+            {/* Progress Bar Section */}
+            <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              {/* Header: Star + Level Name */}
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <span className="font-medium text-gray-800">{questionData.level.name}</span>
+              </div>
+
+              {/* Segments */}
+              <div className="flex gap-1 h-3 mb-4">
+                {(questionData.progress.history || []).map((status: string, index: number) => {
+                  let colorClass = 'bg-gray-100';
+                  const firstPendingIndex = (questionData.progress.history || []).indexOf('pending');
+                  const isCurrent = index === firstPendingIndex;
+
+                  if (status === 'correct') colorClass = 'bg-emerald-400';
+                  else if (status === 'wrong') colorClass = 'bg-red-400';
+                  else if (isCurrent) colorClass = 'bg-yellow-400';
+
+                  return (
+                    <div key={index} className={`flex-1 ${colorClass} first:rounded-l last:rounded-r transition-colors duration-300`}></div>
+                  );
+                })}
+              </div>
+
+              {/* Footer: Quiz Title + Count */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800">{questionData.quiz.title}</h2>
+                <span className="text-gray-400 text-sm font-medium">
+                  ({questionData.progress.answered + (questionData.progress.answered < questionData.progress.total ? 1 : 0)}/{questionData.progress.total})
                 </span>
               </div>
-              <span className="text-sm font-medium text-gray-700">
-                ({progress.answered + 1}/{progress.total})
-              </span>
             </div>
-
-            {/* Multi-colored progress bar */}
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 via-red-500 via-yellow-500 to-green-500 transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-
-            <div className="mt-2 text-center">
-              <h2 className="text-base lg:text-lg font-semibold text-gray-800">{questionData.theme.name}</h2>
+            <div className="mt-2 flex justify-center">
+              <button
+                onClick={() => router.push('/quiz')}
+                className="text-sm text-teal-600 hover:text-teal-700 underline"
+              >
+                Changer de thème
+              </button>
             </div>
           </div>
 

@@ -15,7 +15,7 @@ class QuizQuestionsSeeder extends Seeder
     public function run(): void
     {
         // Get themes and levels
-        $themes = Theme::orderBy('created_at', 'asc')->limit(4)->get();
+        $themes = Theme::orderBy('created_at', 'asc')->get();
         $levels = Level::orderBy('order')->get();
 
         if ($themes->isEmpty() || $levels->isEmpty()) {
@@ -471,6 +471,232 @@ class QuizQuestionsSeeder extends Seeder
                             ['text' => 'Réduire au maximum sa production de déchets', 'is_correct' => true],
                             ['text' => 'Tout recycler', 'is_correct' => false],
                             ['text' => 'Tout brûler', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+            ],
+            
+            // Thème 5: Eau
+            'Eau' => [
+                // Niveau 1
+                1 => [
+                    [
+                        'text' => 'Quelle est la meilleure façon d\'économiser l\'eau en se lavant ?',
+                        'explanation' => 'Prendre une douche rapide (5 minutes) consomme environ 60 à 80 litres d\'eau, contre 150 à 200 litres pour un bain. Le choix est vite fait !',
+                        'options' => [
+                            ['text' => 'Prendre un bain', 'is_correct' => false],
+                            ['text' => 'Prendre une douche rapide', 'is_correct' => true],
+                            ['text' => 'Ne pas se laver', 'is_correct' => false],
+                            ['text' => 'Laisser couler l\'eau en se savonnant', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Pourquoi ne faut-il pas jeter de produits toxiques dans l\'évier ?',
+                        'explanation' => 'Les stations d\'épuration ne peuvent pas tout traiter. Les produits chimiques (peinture, solvants, médicaments) polluent les rivières et les océans s\'ils sont jetés dans les canalisations.',
+                        'options' => [
+                            ['text' => 'Ça bouche les tuyaux', 'is_correct' => false],
+                            ['text' => 'Ça pollue l\'eau et c\'est difficile à traiter', 'is_correct' => true],
+                            ['text' => 'Ça sent mauvais', 'is_correct' => false],
+                            ['text' => 'C\'est interdit par la loi', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Quelle quantité d\'eau douce est disponible sur Terre pour les humains ?',
+                        'explanation' => 'L\'eau douce ne représente que 2,5% de l\'eau sur Terre, et la majeure partie est gelée dans les glaciers. Moins de 1% est réellement accessible pour boire et cultiver !',
+                        'options' => [
+                            ['text' => '50%', 'is_correct' => false],
+                            ['text' => '10%', 'is_correct' => false],
+                            ['text' => 'Moins de 1%', 'is_correct' => true],
+                            ['text' => '100%', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+                // Niveau 2
+                2 => [
+                    [
+                        'text' => 'Qu\'est-ce que l\'eau virtuelle ?',
+                        'explanation' => 'L\'eau virtuelle est la quantité d\'eau nécessaire pour fabriquer un produit. Par exemple, il faut 15 000 litres d\'eau pour produire 1 kg de bœuf (pour faire pousser l\'herbe et les céréales qu\'il mange).',
+                        'options' => [
+                            ['text' => 'L\'eau dans les jeux vidéo', 'is_correct' => false],
+                            ['text' => 'L\'eau cachée nécessaire à la production d\'un bien', 'is_correct' => true],
+                            ['text' => 'L\'eau en bouteille', 'is_correct' => false],
+                            ['text' => 'L\'eau de pluie', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Comment récupérer l\'eau de pluie peut-il être utile ?',
+                        'explanation' => 'L\'eau de pluie est gratuite et parfaite pour arroser le jardin, laver la voiture ou alimenter les toilettes. Ça permet d\'économiser l\'eau potable traitée.',
+                        'options' => [
+                            ['text' => 'Pour la boire directement', 'is_correct' => false],
+                            ['text' => 'Pour arroser le jardin et économiser l\'eau potable', 'is_correct' => true],
+                            ['text' => 'Pour prendre une douche', 'is_correct' => false],
+                            ['text' => 'Ce n\'est pas utile', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Qu\'est-ce qu\'une nappe phréatique ?',
+                        'explanation' => 'C\'est une réserve d\'eau souterraine alimentée par l\'infiltration des eaux de pluie. C\'est notre principale source d\'eau potable, il faut donc éviter de la polluer avec des pesticides.',
+                        'options' => [
+                            ['text' => 'Un lac souterrain', 'is_correct' => false],
+                            ['text' => 'Une réserve d\'eau souterraine dans les roches poreuses', 'is_correct' => true],
+                            ['text' => 'Une rivière', 'is_correct' => false],
+                            ['text' => 'Un océan', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Pourquoi les fuites d\'eau sont-elles un problème majeur ?',
+                        'explanation' => 'Un robinet qui goutte peut gaspiller jusqu\'à 120 litres d\'eau par jour ! Réparer les fuites est l\'un des moyens les plus efficaces d\'économiser l\'eau.',
+                        'options' => [
+                            ['text' => 'Elles font du bruit', 'is_correct' => false],
+                            ['text' => 'Elles gaspillent d\'énormes quantités d\'eau potable', 'is_correct' => true],
+                            ['text' => 'Elles abîment les meubles', 'is_correct' => false],
+                            ['text' => 'Elles ne sont pas graves', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+                // Niveau 3
+                3 => [
+                    [
+                        'text' => 'Qu\'est-ce que l\'empreinte hydrique ?',
+                        'explanation' => 'L\'empreinte hydrique mesure le volume total d\'eau douce utilisé pour produire les biens et services consommés par un individu ou une communauté. C\'est comme l\'empreinte carbone, mais pour l\'eau !',
+                        'options' => [
+                            ['text' => 'La taille de ses pieds mouillés', 'is_correct' => false],
+                            ['text' => 'Le volume d\'eau total utilisé pour notre consommation', 'is_correct' => true],
+                            ['text' => 'La quantité d\'eau qu\'on boit', 'is_correct' => false],
+                            ['text' => 'La pluie qui tombe sur une région', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Quel est le problème du dessalement de l\'eau de mer ?',
+                        'explanation' => 'Le dessalement consomme énormément d\'énergie et rejette de la saumure (eau très salée) qui perturbe les écosystèmes marins. C\'est une solution, mais pas sans impact !',
+                        'options' => [
+                            ['text' => 'Ça donne soif', 'is_correct' => false],
+                            ['text' => 'C\'est très énergivore et rejette de la saumure', 'is_correct' => true],
+                            ['text' => 'C\'est impossible à faire', 'is_correct' => false],
+                            ['text' => 'L\'eau reste salée', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Comment l\'agriculture intensive impacte-t-elle les ressources en eau ?',
+                        'explanation' => 'L\'agriculture consomme 70% de l\'eau douce mondiale. L\'irrigation intensive peut assécher les nappes phréatiques et les rivières, et les engrais polluent l\'eau restante.',
+                        'options' => [
+                            ['text' => 'Elle n\'a aucun impact', 'is_correct' => false],
+                            ['text' => 'Elle consomme 70% de l\'eau et peut polluer les nappes', 'is_correct' => true],
+                            ['text' => 'Elle crée de l\'eau', 'is_correct' => false],
+                            ['text' => 'Elle nettoie l\'eau', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+            ],
+
+            // Thème 6: Mobilité durable
+            'Mobilité durable' => [
+                // Niveau 1
+                1 => [
+                    [
+                        'text' => 'Quel est le mode de transport le plus écologique pour les petits trajets ?',
+                        'explanation' => 'La marche ou le vélo ! Zéro émission, bon pour la santé et gratuit. Pour les trajets de moins de 2-3 km, c\'est souvent le plus rapide en ville.',
+                        'options' => [
+                            ['text' => 'La voiture', 'is_correct' => false],
+                            ['text' => 'La marche ou le vélo', 'is_correct' => true],
+                            ['text' => 'Le scooter', 'is_correct' => false],
+                            ['text' => 'L\'hélicoptère', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Pourquoi le covoiturage est-il bon pour la planète ?',
+                        'explanation' => 'Le covoiturage permet de diviser les émissions de CO2 par le nombre de passagers. Moins de voitures sur la route = moins de pollution et moins de bouchons !',
+                        'options' => [
+                            ['text' => 'On peut discuter', 'is_correct' => false],
+                            ['text' => 'Il réduit le nombre de voitures et les émissions par personne', 'is_correct' => true],
+                            ['text' => 'C\'est plus rapide', 'is_correct' => false],
+                            ['text' => 'C\'est obligatoire', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Quel transport en commun pollue le moins ?',
+                        'explanation' => 'Le train et le tramway sont les champions car ils transportent beaucoup de monde et fonctionnent souvent à l\'électricité (qui peut être décarbonée).',
+                        'options' => [
+                            ['text' => 'L\'avion', 'is_correct' => false],
+                            ['text' => 'Le train', 'is_correct' => true],
+                            ['text' => 'Le bus diesel', 'is_correct' => false],
+                            ['text' => 'Le bateau de croisière', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+                // Niveau 2
+                2 => [
+                    [
+                        'text' => 'La voiture électrique est-elle totalement propre ?',
+                        'explanation' => 'Pas totalement. Même si elle n\'émet pas de CO2 en roulant, sa fabrication (surtout la batterie) est polluante. Mais sur sa durée de vie, elle reste bien meilleure qu\'une voiture thermique !',
+                        'options' => [
+                            ['text' => 'Oui, 100% propre', 'is_correct' => false],
+                            ['text' => 'Non, sa fabrication a un impact, mais elle est meilleure à l\'usage', 'is_correct' => true],
+                            ['text' => 'Elle est pire que le diesel', 'is_correct' => false],
+                            ['text' => 'C\'est pareil', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Qu\'est-ce que l\'intermodalité ?',
+                        'explanation' => 'C\'est utiliser plusieurs modes de transport pour un même trajet. Par exemple : vélo jusqu\'à la gare + train + marche jusqu\'au bureau. C\'est la clé pour se passer de la voiture individuelle.',
+                        'options' => [
+                            ['text' => 'Changer de voiture', 'is_correct' => false],
+                            ['text' => 'Combiner plusieurs modes de transport sur un trajet', 'is_correct' => true],
+                            ['text' => 'Rouler sur l\'autoroute', 'is_correct' => false],
+                            ['text' => 'Utiliser un GPS', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Comment la vitesse influence-t-elle la consommation de carburant ?',
+                        'explanation' => 'Plus on roule vite, plus la résistance de l\'air est forte et plus on consomme. Réduire sa vitesse de 10 km/h sur autoroute permet d\'économiser beaucoup de carburant !',
+                        'options' => [
+                            ['text' => 'Elle n\'a pas d\'influence', 'is_correct' => false],
+                            ['text' => 'Plus on va vite, plus on consomme', 'is_correct' => true],
+                            ['text' => 'Plus on va vite, moins on consomme', 'is_correct' => false],
+                            ['text' => 'Ça dépend de la couleur de la voiture', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Quel est l\'avantage du télétravail pour la mobilité ?',
+                        'explanation' => 'Le meilleur déplacement est celui qu\'on ne fait pas ! Le télétravail évite les trajets domicile-travail quotidiens, réduisant ainsi les émissions de CO2 et les embouteillages.',
+                        'options' => [
+                            ['text' => 'On peut dormir plus', 'is_correct' => false],
+                            ['text' => 'Il supprime les trajets et réduit la pollution', 'is_correct' => true],
+                            ['text' => 'On travaille moins', 'is_correct' => false],
+                            ['text' => 'On consomme plus d\'électricité', 'is_correct' => false],
+                        ]
+                    ],
+                ],
+                // Niveau 3
+                3 => [
+                    [
+                        'text' => 'Qu\'est-ce qu\'une Zone à Faibles Émissions (ZFE) ?',
+                        'explanation' => 'Une ZFE est une zone urbaine où l\'accès est restreint pour les véhicules les plus polluants (Crit\'Air 4, 5...). L\'objectif est d\'améliorer la qualité de l\'air en ville.',
+                        'options' => [
+                            ['text' => 'Une zone sans voitures', 'is_correct' => false],
+                            ['text' => 'Une zone interdisant les véhicules les plus polluants', 'is_correct' => true],
+                            ['text' => 'Une zone de limitation de vitesse', 'is_correct' => false],
+                            ['text' => 'Une zone de stationnement gratuit', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'L\'hydrogène est-il l\'avenir de la mobilité ?',
+                        'explanation' => 'L\'hydrogène est prometteur pour les transports lourds (camions, trains, bus) car il offre une grande autonomie. Mais pour être écologique, il doit être produit avec de l\'électricité renouvelable (hydrogène vert).',
+                        'options' => [
+                            ['text' => 'Non, c\'est dangereux', 'is_correct' => false],
+                            ['text' => 'Oui, surtout pour les transports lourds, s\'il est produit proprement', 'is_correct' => true],
+                            ['text' => 'C\'est déjà la norme partout', 'is_correct' => false],
+                            ['text' => 'C\'est une énergie fossile', 'is_correct' => false],
+                        ]
+                    ],
+                    [
+                        'text' => 'Quel est l\'impact du transport de marchandises (fret) ?',
+                        'explanation' => 'Le transport de marchandises représente une part importante des émissions mondiales. Privilégier le fret ferroviaire ou fluvial plutôt que routier permet de réduire considérablement cet impact.',
+                        'options' => [
+                            ['text' => 'Il est négligeable', 'is_correct' => false],
+                            ['text' => 'Il est majeur, d\'où l\'intérêt du train et du bateau', 'is_correct' => true],
+                            ['text' => 'Il ne concerne que les bateaux', 'is_correct' => false],
+                            ['text' => 'Il est moins polluant que la voiture', 'is_correct' => false],
                         ]
                     ],
                 ],

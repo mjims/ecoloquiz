@@ -152,7 +152,7 @@ class ApiClient {
 
   // Levels endpoints
   async getLevels() {
-    return this.request<any>('/levels', { 
+    return this.request<any>('/levels', {
       method: 'GET',
     });
   }
@@ -496,6 +496,18 @@ class ApiClient {
 
   async getStatsFilters() {
     return this.request<any>('/stats/filters', { method: 'GET' });
+  }
+
+  async getDashboardStats() {
+    return this.request<{
+      total_players: number;
+      total_active_players: number;
+      total_questions_answered: number;
+      total_gifts_allocated: number;
+      total_points_earned: number;
+      average_score: number;
+      growth_last_month: number;
+    }>('/stats/dashboard', { method: 'GET' });
   }
 }
 

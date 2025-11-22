@@ -60,7 +60,11 @@ export default function LoginPage() {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      router.push('/dashboard');
+      // Use authHelpers to get return URL
+      const { authHelpers } = await import('@/lib/auth-helpers');
+      const returnUrl = authHelpers.getReturnUrl();
+      authHelpers.clearReturnUrl();
+      router.push(returnUrl);
     } else {
       setErrors({ general: result.error || 'Identifiants incorrects' });
       setIsSubmitting(false);

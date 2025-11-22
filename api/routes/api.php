@@ -27,6 +27,7 @@ Route::post('auth/login', [AuthController::class, 'login']);
 Route::post('auth/refresh', [AuthController::class, 'refresh']);
 Route::post('auth/forgot-password', [PasswordController::class, 'forgot']);
 Route::post('auth/reset-password', [PasswordController::class, 'reset']);
+Route::get('zones', [ZoneController::class, 'index']);
 
 // Protected
 Route::middleware('auth:api')->group(function () {
@@ -51,6 +52,11 @@ Route::middleware('auth:api')->group(function () {
     Route::post('player/quiz/{quizId}/validate-answer', [PlayerDashboardController::class, 'validateAnswer']);
     Route::post('player/quiz/{id}/submit', [PlayerDashboardController::class, 'submitQuiz']);
     Route::get('player/gifts', [PlayerDashboardController::class, 'getPlayerGifts']);
+    Route::get('player/stats', [PlayerDashboardController::class, 'playerStats']);
+
+    // Themes accessible to all authenticated users
+    Route::get('themes', [ThemeController::class, 'index']);
+    Route::get('themes/{id}', [ThemeController::class, 'show']);
 });
 
 // Admin-only user creation
@@ -70,8 +76,7 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::get('levels', [LevelController::class, 'index']);
 
     // Themes routes
-    Route::get('themes', [ThemeController::class, 'index']);
-    Route::get('themes/{id}', [ThemeController::class, 'show']);
+    // Themes routes (Admin only for modification)
     Route::post('themes', [ThemeController::class, 'store']);
     Route::put('themes/{id}', [ThemeController::class, 'update']);
     Route::delete('themes/{id}', [ThemeController::class, 'destroy']);
@@ -93,8 +98,7 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     // Upload routes
     Route::post('upload/image', [UploadController::class, 'uploadImage']);
 
-    // Zones routes
-    Route::get('zones', [ZoneController::class, 'index']);
+    // Zones routes (Admin only for modification)
     Route::get('zones/{id}', [ZoneController::class, 'show']);
     Route::post('zones', [ZoneController::class, 'store']);
     Route::put('zones/{id}', [ZoneController::class, 'update']);
@@ -135,6 +139,8 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     // Statistics
     Route::get('stats', [StatsController::class, 'index']);
     Route::get('stats/filters', [StatsController::class, 'filters']);
+    Route::get('stats/dashboard', [StatsController::class, 'dashboard']);
+    Route::get('stats/questions', [StatsController::class, 'questionPerformance']);
 });
 
 // Permissions Management - Requires permissions.edit permission

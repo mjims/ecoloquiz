@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Allocation;
 use App\Models\AnswerOption;
+use App\Models\Gift;
 use App\Models\Level;
 use App\Models\Player;
 use App\Models\PlayerAnswer;
@@ -11,6 +13,8 @@ use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\Theme;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PlayerDashboardController extends Controller
 {
@@ -121,47 +125,61 @@ class PlayerDashboardController extends Controller
             ]
         );
 
+        // Calculate completed quizzes
+        // A quiz is completed if the player has answered all its questions
+        $quizzes = Quiz::withCount('questions')->get();
+        $quizCompleted = 0;
+
+        // Get all player answers grouped by quiz_id to optimize
+        // We need to join questions to get quiz_id
+        $playerAnswersCounts = PlayerAnswer::where('player_id', $player->id)
+            ->join('questions', 'player_answers.question_id', '=', 'questions.id')
+            ->selectRaw('questions.quiz_id, count(*) as count')
+            ->groupBy('questions.quiz_id')
+            ->pluck('count', 'quiz_id');
+
+        foreach ($quizzes as $quiz) {
+            $answeredCount = $playerAnswersCounts[$quiz->id] ?? 0;
+            if ($quiz->questions_count > 0 && $answeredCount >= $quiz->questions_count) {
+                $quizCompleted++;
+            }
+        }
+
         // Get all levels
         $levels = Level::orderBy('order', 'asc')->get();
-
-        // TODO: Calculate real progression based on quiz attempts
-        // For now, we'll return mock data based on player points
-
-        // Simple logic: every 100 points = 1 quiz completed
-        $quizCompleted = (int) floor($player->points / 100);
 
         // Calculate progression for each level
         $levelProgress = [];
         foreach ($levels as $index => $level) {
             $levelNumber = $index + 1;
 
-            // Mock calculation:
-            // Level 1: based on points 0-500 (0-100%)
-            // Level 2: based on points 500-1500 (0-100%)
-            // Level 3: based on points 1500+ (0-100%)
+            // Total questions in this level
+            $totalQuestions = Question::whereHas('quiz', function($q) use ($level) {
+                $q->where('level_id', $level->id);
+            })->count();
 
-            $minPoints = $index * 500;
-            $maxPoints = ($index + 1) * 500;
+            // Answered questions in this level
+            $answeredQuestions = PlayerAnswer::where('player_id', $player->id)
+                ->whereHas('question.quiz', function($q) use ($level) {
+                    $q->where('level_id', $level->id);
+                })->count();
 
-            if ($player->points >= $maxPoints) {
-                $percentage = 100;
-            } elseif ($player->points <= $minPoints) {
-                $percentage = 0;
-            } else {
-                $percentage = (int) (($player->points - $minPoints) / ($maxPoints - $minPoints) * 100);
-            }
+            $percentage = $totalQuestions > 0 ? round(($answeredQuestions / $totalQuestions) * 100) : 0;
+            // Cap at 100%
+            $percentage = min(100, $percentage);
 
             $levelProgress[] = [
                 'level' => $levelNumber,
                 'name' => $level->name,
                 'percentage' => $percentage,
-                'stars' => $levelNumber // Number of stars = level number
+                'stars' => $levelNumber // Number of stars represents the level difficulty/rank
             ];
         }
 
         return response()->json([
             'quizCompleted' => $quizCompleted,
-            'levels' => $levelProgress
+            'levels' => $levelProgress,
+            'totalPoints' => $player->points
         ]);
     }
 
@@ -319,6 +337,20 @@ class PlayerDashboardController extends Controller
         // Get the theme
         $theme = Theme::findOrFail($themeId);
 
+        // Check if there are any questions at all for this theme
+        $totalQuestionsCount = Question::whereHas('quiz', function($q) use ($themeId) {
+            $q->where('theme_id', $themeId);
+        })->count();
+
+        if ($totalQuestionsCount === 0) {
+             return response()->json([
+                'message' => 'Aucune question disponible pour ce thème pour le moment.',
+                'theme_completed' => false,
+                'no_questions' => true,
+                'other_themes' => Theme::where('id', '!=', $themeId)->get()
+            ], 200);
+        }
+
         // Get all levels ordered by order
         $levels = Level::orderBy('order', 'asc')->get();
 
@@ -386,29 +418,57 @@ class PlayerDashboardController extends Controller
             $player->save();
         }
 
-        // Remove is_correct from options
+        // Remove is_correct from options and check for multiple answers
         $questionData = $question->toArray();
+        $isMultipleAnswers = false;
+
         if (isset($questionData['options'])) {
+            $correctCount = 0;
+            // We need to check the original options collection because toArray might have already processed them if not careful, 
+            // but here we are working with the array from the model which includes is_correct.
             foreach ($questionData['options'] as &$option) {
+                if (isset($option['is_correct']) && $option['is_correct']) {
+                    $correctCount++;
+                }
                 unset($option['is_correct']);
             }
+            $isMultipleAnswers = $correctCount > 1;
         }
 
         // Calculate progress for this level
-        $totalQuestionsInLevel = Question::whereHas('quiz', function($q) use ($themeId, $level) {
-            $q->where('theme_id', $themeId)->where('level_id', $level->id);
-        })->count();
-
-        $answeredQuestionsInLevel = PlayerAnswer::where('player_id', $player->id)
-            ->whereHas('question', function($q) use ($themeId, $level) {
-                $q->whereHas('quiz', function($query) use ($themeId, $level) {
-                    $query->where('theme_id', $themeId)->where('level_id', $level->id);
-                });
-            })
-            ->count();
+        // Get all quizzes for this theme and level to ensure consistent ordering
+        $quizzesInLevel = Quiz::where('theme_id', $themeId)
+            ->where('level_id', $level->id)
+            ->with(['questions'])
+            ->get();
+            
+        $allQuestions = collect();
+        foreach ($quizzesInLevel as $q) {
+            $allQuestions = $allQuestions->concat($q->questions);
+        }
+        
+        $totalQuestionsInLevel = $allQuestions->count();
+        
+        $playerAnswers = PlayerAnswer::where('player_id', $player->id)
+            ->whereIn('question_id', $allQuestions->pluck('id'))
+            ->get()
+            ->keyBy('question_id');
+            
+        $history = [];
+        $answeredQuestionsInLevel = 0;
+        
+        foreach ($allQuestions as $q) {
+            if (isset($playerAnswers[$q->id])) {
+                $history[] = $playerAnswers[$q->id]->is_correct ? 'correct' : 'wrong';
+                $answeredQuestionsInLevel++;
+            } else {
+                $history[] = 'pending';
+            }
+        }
 
         return response()->json([
             'question' => $questionData,
+            'is_multiple_answers' => $isMultipleAnswers,
             'quiz' => [
                 'id' => $quiz->id,
                 'title' => $quiz->title
@@ -418,7 +478,8 @@ class PlayerDashboardController extends Controller
             'progress' => [
                 'answered' => $answeredQuestionsInLevel,
                 'total' => $totalQuestionsInLevel,
-                'percentage' => $totalQuestionsInLevel > 0 ? round(($answeredQuestionsInLevel / $totalQuestionsInLevel) * 100) : 0
+                'percentage' => $totalQuestionsInLevel > 0 ? round(($answeredQuestionsInLevel / $totalQuestionsInLevel) * 100) : 0,
+                'history' => $history
             ]
         ]);
     }
@@ -520,8 +581,17 @@ class PlayerDashboardController extends Controller
     {
         $user = $request->user();
         $questionId = $request->input('question_id');
-        $answerIds = $request->input('answer_ids'); // Array or null
-        $answerId = $request->input('answer_id');   // String or null
+        // Normalize input: we always want an array of answer IDs
+        $answerIds = $request->input('answer_ids'); 
+        $answerId = $request->input('answer_id');
+
+        if (is_null($answerIds) && !is_null($answerId)) {
+            $answerIds = [$answerId];
+        }
+        
+        if (!is_array($answerIds)) {
+             $answerIds = [];
+        }
 
         // Get or create player
         $player = Player::firstOrCreate(
@@ -549,89 +619,29 @@ class PlayerDashboardController extends Controller
             return response()->json(['error' => 'You have already answered this question'], 400);
         }
 
-        // Auto-detect if question has multiple correct answers
-        $correctOptions = $question->options->where('is_correct', true);
-        $hasMultipleCorrectAnswers = $correctOptions->count() > 1;
-
-        if ($hasMultipleCorrectAnswers) {
-            return $this->validateMultipleAnswers($question, $player, $answerIds, $correctOptions);
-        } else {
-            return $this->validateSingleAnswer($question, $player, $answerId, $correctOptions);
-        }
-    }
-
-    /**
-     * Validate a single answer question
-     */
-    private function validateSingleAnswer($question, $player, $answerId, $correctOptions)
-    {
-        $correctOption = $correctOptions->first();
-
-        if (!$correctOption) {
-            return response()->json(['error' => 'No correct answer found for this question'], 400);
-        }
-
-        $isCorrect = $answerId === $correctOption->id;
-        $pointsEarned = $isCorrect ? 5 : -10;
-
-        // Save player answer
-        PlayerAnswer::create([
-            'player_id' => $player->id,
-            'question_id' => $question->id,
-            'answer_id' => $answerId,
-            'answer_ids' => null,
-            'is_correct' => $isCorrect,
-            'points_earned' => $pointsEarned,
-            'answered_at' => now()
-        ]);
-
-        // Update player points
-        $player->points += $pointsEarned;
-        $player->last_played = now();
-        $player->save();
-
-        // Check if player reached a new milestone and allocate gift
-        $this->checkAndAllocateMilestoneGift($player);
-
-        return response()->json([
-            'is_correct' => $isCorrect,
-            'points_earned' => $pointsEarned,
-            'correct_answer_ids' => [$correctOption->id],
-            'correct_answer_texts' => [$correctOption->text],
-            'explanation' => $question->explanation,
-            'new_total_points' => $player->points,
-            'is_multiple_answers' => false
-        ]);
-    }
-
-    /**
-     * Validate a multiple answers question
-     */
-    private function validateMultipleAnswers($question, $player, $answerIds, $correctOptions)
-    {
-        if (!is_array($answerIds) || empty($answerIds)) {
-            return response()->json(['error' => 'answer_ids must be a non-empty array for this question'], 400);
-        }
-
         // Get all correct option IDs
+        $correctOptions = $question->options->where('is_correct', true);
         $correctIds = $correctOptions->pluck('id')->toArray();
 
-        if (empty($correctIds)) {
-            return response()->json(['error' => 'No correct answers found for this question'], 400);
+        // Strict validation: User answers must match exactly correct answers
+        // 1. Count must be equal
+        // 2. Intersection must have same count (meaning all user answers are in correct answers)
+        
+        $isCorrect = false;
+        if (count($answerIds) === count($correctIds)) {
+             $intersection = array_intersect($answerIds, $correctIds);
+             if (count($intersection) === count($correctIds)) {
+                 $isCorrect = true;
+             }
         }
 
-        // Compare arrays (order doesn't matter)
-        sort($correctIds);
-        sort($answerIds);
-
-        $isCorrect = $correctIds === $answerIds;
         $pointsEarned = $isCorrect ? 5 : -10;
 
         // Save player answer
         PlayerAnswer::create([
             'player_id' => $player->id,
             'question_id' => $question->id,
-            'answer_id' => null,
+            'answer_id' => null, // We store everything in answer_ids now or we could keep backward compat if needed but let's stick to answer_ids for consistency in this logic
             'answer_ids' => $answerIds,
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
@@ -649,11 +659,11 @@ class PlayerDashboardController extends Controller
         return response()->json([
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
-            'correct_answer_ids' => $correctIds,
-            'correct_answer_texts' => $correctOptions->pluck('text')->toArray(),
+            'correct_answer_ids' => array_values($correctIds), // Ensure array is indexed
+            'correct_answer_texts' => array_values($correctOptions->pluck('text')->toArray()),
             'explanation' => $question->explanation,
             'new_total_points' => $player->points,
-            'is_multiple_answers' => true
+            'is_multiple_answers' => count($correctIds) > 1
         ]);
     }
 
@@ -821,6 +831,69 @@ class PlayerDashboardController extends Controller
     }
 
     /**
+     * Get player statistics
+     */
+    public function playerStats(Request $request)
+    {
+        $user = $request->user();
+        $player = Player::where('user_id', $user->id)->first();
+        
+        if (!$player) {
+            return response()->json(['error' => 'Player not found'], 404);
+        }
+        
+        $totalAnswers = $player->answers()->count();
+        $correctAnswers = $player->answers()->where('is_correct', true)->count();
+        $accuracy = $totalAnswers > 0 
+            ? round(($correctAnswers / $totalAnswers) * 100) 
+            : 0;
+        
+        // Répartition par thème
+        $themeStats = DB::table('player_answers')
+            ->join('questions', 'player_answers.question_id', '=', 'questions.id')
+            ->join('quizzes', 'questions.quiz_id', '=', 'quizzes.id')
+            ->join('themes', 'quizzes.theme_id', '=', 'themes.id')
+            ->where('player_answers.player_id', $player->id)
+            ->select(
+                'themes.name',
+                DB::raw('COUNT(*) as total_answers'),
+                DB::raw('SUM(CASE WHEN player_answers.is_correct THEN 1 ELSE 0 END) as correct_answers')
+            )
+            ->groupBy('themes.id', 'themes.name')
+            ->get();
+        
+        // Progression temporelle (7 derniers jours)
+        $progressionData = DB::table('player_answers')
+            ->where('player_id', $player->id)
+            ->where('answered_at', '>=', now()->subDays(7))
+            ->select(
+                DB::raw('DATE(answered_at) as date'),
+                DB::raw('SUM(points_earned) as points_earned'),
+                DB::raw('COUNT(*) as questions_answered')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+        
+        return response()->json([
+            'player' => [
+                'points' => $player->points,
+                'current_level' => $player->current_level,
+                'last_milestone' => $player->last_milestone,
+            ],
+            'performance' => [
+                'total_answers' => $totalAnswers,
+                'correct_answers' => $correctAnswers,
+                'wrong_answers' => $totalAnswers - $correctAnswers,
+                'accuracy' => $accuracy,
+            ],
+            'by_theme' => $themeStats,
+            'progression_7_days' => $progressionData,
+            'gifts_won' => $player->allocations()->count(),
+        ]);
+    }
+
+    /**
      * Check if player reached a new 100-point milestone and allocate gift(s)
      */
     private function checkAndAllocateMilestoneGift($player)
@@ -877,7 +950,7 @@ class PlayerDashboardController extends Controller
         
         if ($eligibleGifts->isEmpty()) {
             // No gifts available - log warning
-            \Log::warning("No gifts available for player {$player->id} at milestone {$milestone}");
+            Log::warning("No gifts available for player {$player->id} at milestone {$milestone}");
             return null;
         }
         
@@ -895,7 +968,7 @@ class PlayerDashboardController extends Controller
         // Send email notification
         $this->sendGiftNotificationEmail($player, $selectedGift, $milestone);
         
-        \Log::info("Gift allocated to player {$player->id}: {$selectedGift->name} at milestone {$milestone}");
+        Log::info("Gift allocated to player {$player->id}: {$selectedGift->name} at milestone {$milestone}");
         
         return $allocation;
     }
@@ -922,10 +995,10 @@ class PlayerDashboardController extends Controller
                 $giftsUrl
             );
             
-            \Log::info("Gift won email sent to {$user->email} for gift: {$gift->name} at milestone {$milestone}");
+            Log::info("Gift won email sent to {$user->email} for gift: {$gift->name} at milestone {$milestone}");
             
         } catch (\Exception $e) {
-            \Log::error("Failed to send gift notification email: " . $e->getMessage());
+            Log::error("Failed to send gift notification email: " . $e->getMessage());
         }
     }
 }

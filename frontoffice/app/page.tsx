@@ -38,8 +38,7 @@ export default function Home() {
                   <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-teal-700">
                       Bienvenue sur <span className="block text-2xl lg:text-3xl mt-1">
-                        <span className="text-teal-700">Zéro</span>
-                        <span className="text-sm lg:text-base block text-gray-700">Déchet</span>
+                        <span className="text-teal-700">Écolo Quiz</span>
                       </span>
                     </h1>
                   </div>
@@ -110,7 +109,7 @@ export default function Home() {
                   </div>
 
                   {/* CTA Button */}
-                  <Link href="/quiz/cycle-vie-dechets">
+                  <Link href="/quiz">
                     <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-sm lg:text-base">
                       Répondre au quiz pour un code promo
                     </button>
@@ -155,9 +154,9 @@ export default function Home() {
 
           </div>
         </div>
-      </main>
+      </main >
 
       <Footer />
-    </div>
+    </div >
   );
 }

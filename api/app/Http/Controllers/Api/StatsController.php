@@ -17,6 +17,32 @@ use Carbon\Carbon;
 class StatsController extends Controller
 {
     /**
+     * Get dashboard overview statistics
+     */
+    public function dashboard()
+    {
+        $totalPlayers = Player::count();
+        $totalActivePlayers = Player::whereNotNull('last_played')
+            ->where('last_played', '>=', now()->subDays(30))
+            ->count();
+        $totalQuestionsAnswered = DB::table('player_answers')->count();
+        $totalGiftsAllocated = Allocation::count();
+        $totalPointsEarned = Player::sum('points');
+        $averageScore = round(Player::avg('points'));
+        $growthLastMonth = Player::where('created_at', '>=', now()->subMonth())->count();
+
+        return response()->json([
+            'total_players' => $totalPlayers,
+            'total_active_players' => $totalActivePlayers,
+            'total_questions_answered' => $totalQuestionsAnswered,
+            'total_gifts_allocated' => $totalGiftsAllocated,
+            'total_points_earned' => $totalPointsEarned,
+            'average_score' => $averageScore,
+            'growth_last_month' => $growthLastMonth,
+        ]);
+    }
+
+    /**
      * Get statistics with filters
      */
     public function index(Request $request)
@@ -55,7 +81,7 @@ class StatsController extends Controller
             : 0;
 
         // Get all levels
-        $levelsData = Level::orderBy('level_number')->get();
+        $levelsData = Level::orderBy('order')->get();
 
         // Statistics by level
         $levelStats = [];
@@ -65,7 +91,7 @@ class StatsController extends Controller
                 continue;
             }
 
-            $levelPlayersQuery = (clone $playersQuery)->where('current_level', $level->level_number);
+            $levelPlayersQuery = (clone $playersQuery)->where('current_level', $level->order);
             $levelPlayersCount = $levelPlayersQuery->count();
 
             // % of players at this level
@@ -93,7 +119,7 @@ class StatsController extends Controller
             $avgTime = round($avgTime);
 
             $levelStats[] = [
-                'level' => $level->level_number,
+                'level' => $level->order,
                 'level_name' => $level->name,
                 'level_id' => $level->id,
                 'percent_subscribers' => $percentSubscribers,
@@ -128,12 +154,47 @@ class StatsController extends Controller
     {
         $zones = Zone::select('id', 'name', 'type')->orderBy('name')->get();
         $themes = Theme::select('id', 'name')->orderBy('name')->get();
-        $levels = Level::select('id', 'name', 'level_number')->orderBy('level_number')->get();
+        $levels = Level::select('id', 'name', 'order')->orderBy('order')->get();
 
         return response()->json([
             'zones' => $zones,
             'themes' => $themes,
             'levels' => $levels,
         ]);
+    }
+
+    /**
+     * Get question performance statistics
+     */
+    public function questionPerformance()
+    {
+        $questions = DB::table('questions')
+            ->leftJoin('player_answers', 'questions.id', '=', 'player_answers.question_id')
+            ->select(
+                'questions.id as question_id',
+                'questions.text as question_text',
+                DB::raw('COUNT(player_answers.id) as total_attempts'),
+                DB::raw('SUM(CASE WHEN player_answers.is_correct THEN 1 ELSE 0 END) as correct_answers')
+            )
+            ->whereNull('questions.deleted_at')
+            ->groupBy('questions.id', 'questions.text')
+            ->having('total_attempts', '>', 0)
+            ->get();
+
+        $stats = $questions->map(function($question) {
+            $total = $question->total_attempts;
+            $correct = $question->correct_answers ?? 0;
+            $successRate = $total > 0 ? round(($correct / $total) * 100) : 0;
+            
+            return [
+                'question_id' => $question->question_id,
+                'question_text' => $question->question_text,
+                'total_attempts' => $total,
+                'success_rate' => $successRate,
+                'difficulty' => $successRate > 70 ? 'Facile' : ($successRate > 40 ? 'Moyen' : 'Difficile'),
+            ];
+        });
+
+        return response()->json($stats);
     }
 }

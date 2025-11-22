@@ -66,10 +66,13 @@ class ApiClient {
     });
   }
 
-  async register(name: string, email: string, password: string, password_confirmation: string) {
+  async register(first_name: string, last_name: string, email: string, password: string, password_confirmation: string, zone_id?: string) {
+    const body: any = { first_name, last_name, email, password, password_confirmation };
+    if (zone_id) body.zone_id = zone_id;
+
     return this.request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, password_confirmation }),
+      body: JSON.stringify(body),
     });
   }
 
@@ -102,6 +105,20 @@ class ApiClient {
   async refreshToken() {
     return this.request<{ token: string }>('/auth/refresh', {
       method: 'POST',
+    });
+  }
+
+  // Themes endpoints
+  async getThemes() {
+    return this.request<any>('/themes', {
+      method: 'GET',
+    });
+  }
+
+  // Zones endpoints
+  async getZones() {
+    return this.request<any[]>('/zones', {
+      method: 'GET',
     });
   }
 
@@ -201,6 +218,35 @@ class ApiClient {
       points_to_next: number;
       current_points: number;
     }>('/player/gifts', {
+      method: 'GET',
+    });
+  }
+
+  async getPlayerStats() {
+    return this.request<{
+      player: {
+        points: number;
+        current_level: number;
+        last_milestone: number;
+      };
+      performance: {
+        total_answers: number;
+        correct_answers: number;
+        wrong_answers: number;
+        accuracy: number;
+      };
+      by_theme: Array<{
+        name: string;
+        total_answers: number;
+        correct_answers: number;
+      }>;
+      progression_7_days: Array<{
+        date: string;
+        points_earned: number;
+        questions_answered: number;
+      }>;
+      gifts_won: number;
+    }>('/player/stats', {
       method: 'GET',
     });
   }

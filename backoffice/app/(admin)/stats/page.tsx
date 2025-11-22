@@ -17,7 +17,7 @@ interface Theme {
 interface Level {
   id: string;
   name: string;
-  level_number: number;
+  order: number;
 }
 
 interface LevelStat {
@@ -241,7 +241,7 @@ export default function StatsPage() {
                   className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  niv {level.level_number}
+                  niv {level.order}
                 </span>
               </label>
             ))}
