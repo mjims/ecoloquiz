@@ -13,10 +13,11 @@ class Player extends Model
 
     protected $table = 'players';
 
-    protected $fillable = ['id', 'user_id', 'points', 'current_level', 'last_played', 'zone_id'];
+    protected $fillable = ['id', 'user_id', 'points', 'last_milestone', 'current_level', 'last_played', 'zone_id'];
 
     protected $casts = [
         'points' => 'integer',
+        'last_milestone' => 'integer',
         'last_played' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

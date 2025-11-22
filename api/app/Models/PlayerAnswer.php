@@ -17,13 +17,15 @@ class PlayerAnswer extends Model
         'id',
         'player_id',
         'question_id',
-        'answer_id',
+        'answer_id',      // Single answer (for backward compatibility)
+        'answer_ids',     // Multiple answers (JSON array)
         'is_correct',
         'points_earned',
         'answered_at',
     ];
 
     protected $casts = [
+        'answer_ids' => 'array',  // Automatically cast JSON to/from array
         'is_correct' => 'boolean',
         'points_earned' => 'integer',
         'answered_at' => 'datetime',

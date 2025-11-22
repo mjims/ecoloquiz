@@ -148,17 +148,22 @@ class ApiClient {
     });
   }
 
-  async validateAnswer(quizId: string, questionId: string, answerId: string) {
+  async validateAnswer(quizId: string, questionId: string, answer: string | string[]) {
+    const payload = Array.isArray(answer)
+      ? { question_id: questionId, answer_ids: answer }
+      : { question_id: questionId, answer_id: answer };
+
     return this.request<{
       is_correct: boolean;
       points_earned: number;
-      correct_answer_id: string;
-      correct_answer_text: string;
+      correct_answer_ids: string[];
+      correct_answer_texts: string[];
       explanation?: string;
       new_total_points?: number;
+      is_multiple_answers?: boolean;
     }>(`/player/quiz/${quizId}/validate-answer`, {
       method: 'POST',
-      body: JSON.stringify({ question_id: questionId, answer_id: answerId }),
+      body: JSON.stringify(payload),
     });
   }
 

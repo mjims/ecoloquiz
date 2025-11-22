@@ -474,13 +474,13 @@ class PlayerDashboardController extends Controller
     }
 
     /**
-     * Validate a single answer
+     * Validate answer(s) for a quiz question
      *
      * @OA\Post(
      *   path="/api/player/quiz/{quizId}/validate-answer",
      *   tags={"Player Dashboard"},
-     *   summary="Validate a single quiz answer",
-     *   description="Validates a single answer and returns feedback",
+     *   summary="Validate quiz answer(s)",
+     *   description="Validates single or multiple answers and returns feedback",
      *   security={{"bearerAuth":{}}},
      *
      *   @OA\Parameter(
@@ -495,7 +495,8 @@ class PlayerDashboardController extends Controller
      *     required=true,
      *     @OA\JsonContent(
      *       @OA\Property(property="question_id", type="string", format="uuid"),
-     *       @OA\Property(property="answer_id", type="string", format="uuid")
+     *       @OA\Property(property="answer_id", type="string", format="uuid", description="Single answer (mutually exclusive with answer_ids)"),
+     *       @OA\Property(property="answer_ids", type="array", @OA\Items(type="string", format="uuid"), description="Multiple answers (mutually exclusive with answer_id)")
      *     )
      *   ),
      *
@@ -505,9 +506,10 @@ class PlayerDashboardController extends Controller
      *     @OA\JsonContent(
      *       @OA\Property(property="is_correct", type="boolean", example=true),
      *       @OA\Property(property="points_earned", type="integer", example=5),
-     *       @OA\Property(property="correct_answer_id", type="string", format="uuid"),
-     *       @OA\Property(property="correct_answer_text", type="string"),
-     *       @OA\Property(property="explanation", type="string")
+     *       @OA\Property(property="correct_answer_ids", type="array", @OA\Items(type="string")),
+     *       @OA\Property(property="correct_answer_texts", type="array", @OA\Items(type="string")),
+     *       @OA\Property(property="explanation", type="string"),
+     *       @OA\Property(property="is_multiple_answers", type="boolean")
      *     )
      *   ),
      *   @OA\Response(response=404, description="Question or answer not found"),
@@ -518,7 +520,8 @@ class PlayerDashboardController extends Controller
     {
         $user = $request->user();
         $questionId = $request->input('question_id');
-        $answerId = $request->input('answer_id');
+        $answerIds = $request->input('answer_ids'); // Array or null
+        $answerId = $request->input('answer_id');   // String or null
 
         // Get or create player
         $player = Player::firstOrCreate(
@@ -531,7 +534,7 @@ class PlayerDashboardController extends Controller
             ]
         );
 
-        // Find the question
+        // Find the question with options
         $question = Question::with('options')
             ->where('id', $questionId)
             ->where('quiz_id', $quizId)
@@ -546,28 +549,43 @@ class PlayerDashboardController extends Controller
             return response()->json(['error' => 'You have already answered this question'], 400);
         }
 
-        // Find the correct option
-        $correctOption = $question->options->where('is_correct', true)->first();
+        // Auto-detect if question has multiple correct answers
+        $correctOptions = $question->options->where('is_correct', true);
+        $hasMultipleCorrectAnswers = $correctOptions->count() > 1;
+
+        if ($hasMultipleCorrectAnswers) {
+            return $this->validateMultipleAnswers($question, $player, $answerIds, $correctOptions);
+        } else {
+            return $this->validateSingleAnswer($question, $player, $answerId, $correctOptions);
+        }
+    }
+
+    /**
+     * Validate a single answer question
+     */
+    private function validateSingleAnswer($question, $player, $answerId, $correctOptions)
+    {
+        $correctOption = $correctOptions->first();
 
         if (!$correctOption) {
             return response()->json(['error' => 'No correct answer found for this question'], 400);
         }
 
-        // Check if user's answer is correct
         $isCorrect = $answerId === $correctOption->id;
         $pointsEarned = $isCorrect ? 5 : -10;
 
         // Save player answer
         PlayerAnswer::create([
             'player_id' => $player->id,
-            'question_id' => $questionId,
+            'question_id' => $question->id,
             'answer_id' => $answerId,
+            'answer_ids' => null,
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
             'answered_at' => now()
         ]);
 
-        // Update player points and last played
+        // Update player points
         $player->points += $pointsEarned;
         $player->last_played = now();
         $player->save();
@@ -575,10 +593,61 @@ class PlayerDashboardController extends Controller
         return response()->json([
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
-            'correct_answer_id' => $correctOption->id,
-            'correct_answer_text' => $correctOption->text,
+            'correct_answer_ids' => [$correctOption->id],
+            'correct_answer_texts' => [$correctOption->text],
             'explanation' => $question->explanation,
-            'new_total_points' => $player->points
+            'new_total_points' => $player->points,
+            'is_multiple_answers' => false
+        ]);
+    }
+
+    /**
+     * Validate a multiple answers question
+     */
+    private function validateMultipleAnswers($question, $player, $answerIds, $correctOptions)
+    {
+        if (!is_array($answerIds) || empty($answerIds)) {
+            return response()->json(['error' => 'answer_ids must be a non-empty array for this question'], 400);
+        }
+
+        // Get all correct option IDs
+        $correctIds = $correctOptions->pluck('id')->toArray();
+
+        if (empty($correctIds)) {
+            return response()->json(['error' => 'No correct answers found for this question'], 400);
+        }
+
+        // Compare arrays (order doesn't matter)
+        sort($correctIds);
+        sort($answerIds);
+
+        $isCorrect = $correctIds === $answerIds;
+        $pointsEarned = $isCorrect ? 5 : -10;
+
+        // Save player answer
+        PlayerAnswer::create([
+            'player_id' => $player->id,
+            'question_id' => $question->id,
+            'answer_id' => null,
+            'answer_ids' => $answerIds,
+            'is_correct' => $isCorrect,
+            'points_earned' => $pointsEarned,
+            'answered_at' => now()
+        ]);
+
+        // Update player points
+        $player->points += $pointsEarned;
+        $player->last_played = now();
+        $player->save();
+
+        return response()->json([
+            'is_correct' => $isCorrect,
+            'points_earned' => $pointsEarned,
+            'correct_answer_ids' => $correctIds,
+            'correct_answer_texts' => $correctOptions->pluck('text')->toArray(),
+            'explanation' => $question->explanation,
+            'new_total_points' => $player->points,
+            'is_multiple_answers' => true
         ]);
     }
 
