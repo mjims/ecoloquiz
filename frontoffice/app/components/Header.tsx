@@ -13,8 +13,8 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="flex flex-col items-start">
-              <span className="text-2xl font-bold text-green-600">Zéro</span>
-              <span className="text-sm text-gray-700 -mt-1">Déchet</span>
+              <span className="text-2xl font-bold text-green-600">Ecolo</span>
+              <span className="text-sm text-gray-700 -mt-1">Quiz</span>
             </div>
           </Link>
 

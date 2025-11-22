@@ -24,7 +24,7 @@ export default function Home() {
                       Inscrits-toi
                     </h2>
                     <p className="text-sm lg:text-base text-gray-800">
-                      N&apos;attends pas, inscrits-toi et joue au quiz Zéro déchet pour gagner des cadeaux !
+                      N&apos;attends pas, inscrits-toi et joue au quiz Ecolo Quiz pour gagner des cadeaux !
                     </p>
                   </div>
                   <div className="ml-3 text-4xl lg:text-5xl">🎁</div>
