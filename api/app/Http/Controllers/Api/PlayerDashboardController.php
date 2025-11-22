@@ -590,6 +590,9 @@ class PlayerDashboardController extends Controller
         $player->last_played = now();
         $player->save();
 
+        // Check if player reached a new milestone and allocate gift
+        $this->checkAndAllocateMilestoneGift($player);
+
         return response()->json([
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
@@ -639,6 +642,9 @@ class PlayerDashboardController extends Controller
         $player->points += $pointsEarned;
         $player->last_played = now();
         $player->save();
+
+        // Check if player reached a new milestone and allocate gift
+        $this->checkAndAllocateMilestoneGift($player);
 
         return response()->json([
             'is_correct' => $isCorrect,
@@ -760,5 +766,166 @@ class PlayerDashboardController extends Controller
             'results' => $results,
             'newTotalPoints' => $player->points
         ]);
+    }
+
+    /**
+     * Get player's won gifts
+     *
+     * @OA\Get(
+     *   path="/api/player/gifts",
+     *   tags={"Player Dashboard"},
+     *   summary="Get player's won gifts",
+     *   description="Returns list of gifts allocated to the player with progress to next milestone",
+     *   security={{"bearerAuth":{}}},
+     *
+     *   @OA\Response(
+     *     response=200,
+     *     description="Gifts retrieved successfully",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="gifts", type="array", @OA\Items(type="object")),
+     *       @OA\Property(property="next_milestone", type="integer", example=200),
+     *       @OA\Property(property="points_to_next", type="integer", example=35)
+     *     )
+     *   ),
+     *   @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function getPlayerGifts(Request $request)
+    {
+        $user = $request->user();
+        
+        $player = Player::where('user_id', $user->id)->first();
+        
+        if (!$player) {
+            return response()->json([
+                'gifts' => [],
+                'next_milestone' => 100,
+                'points_to_next' => 100
+            ]);
+        }
+        
+        $allocations = Allocation::with('gift')
+            ->where('player_id', $player->id)
+            ->orderBy('allocated_at', 'desc')
+            ->get();
+        
+        $nextMilestone = (floor($player->points / 100) + 1) * 100;
+        $pointsToNext = $nextMilestone - $player->points;
+        
+        return response()->json([
+            'gifts' => $allocations,
+            'next_milestone' => $nextMilestone,
+            'points_to_next' => $pointsToNext,
+            'current_points' => $player->points
+        ]);
+    }
+
+    /**
+     * Check if player reached a new 100-point milestone and allocate gift(s)
+     */
+    private function checkAndAllocateMilestoneGift($player)
+    {
+        $currentMilestone = floor($player->points / 100) * 100;
+        
+        // Check if a new milestone was reached
+        if ($currentMilestone > $player->last_milestone && $currentMilestone >= 100) {
+            // Update last milestone
+            $oldMilestone = $player->last_milestone;
+            $player->last_milestone = $currentMilestone;
+            $player->save();
+            
+            // Handle multiple milestones crossed at once
+            for ($milestone = $oldMilestone + 100; $milestone <= $currentMilestone; $milestone += 100) {
+                $this->drawAndAllocateGift($player, $milestone);
+            }
+        }
+    }
+
+    /**
+     * Draw a random gift and allocate it to the player
+     */
+    private function drawAndAllocateGift($player, $milestone)
+    {
+        // Get available gifts for this player
+        $availableGifts = Gift::where(function($query) use ($player) {
+            // Filter by zone if player has one
+            if ($player->zone_id) {
+                $query->whereJsonContains('metadata->zones', $player->zone_id)
+                      ->orWhereJsonLength('metadata->zones', 0)
+                      ->orWhereNull('metadata');
+            }
+        })
+        ->where(function($query) {
+            // Filter by date validity
+            $today = now()->toDateString();
+            $query->where(function($q) use ($today) {
+                $q->whereNull('start_date')
+                  ->orWhere('start_date', '<=', $today);
+            })
+            ->where(function($q) use ($today) {
+                $q->whereNull('end_date')
+                  ->orWhere('end_date', '>=', $today);
+            });
+        })
+        ->get();
+        
+        // Filter gifts that still have available quantity
+        $eligibleGifts = $availableGifts->filter(function($gift) {
+            $allocatedCount = $gift->allocations()->count();
+            return $allocatedCount < $gift->total_quantity;
+        });
+        
+        if ($eligibleGifts->isEmpty()) {
+            // No gifts available - log warning
+            \Log::warning("No gifts available for player {$player->id} at milestone {$milestone}");
+            return null;
+        }
+        
+        // Random draw
+        $selectedGift = $eligibleGifts->random();
+        
+        // Create allocation
+        $allocation = Allocation::create([
+            'gift_id' => $selectedGift->id,
+            'player_id' => $player->id,
+            'allocated_at' => now(),
+            'status' => 'PENDING'
+        ]);
+        
+        // Send email notification
+        $this->sendGiftNotificationEmail($player, $selectedGift, $milestone);
+        
+        \Log::info("Gift allocated to player {$player->id}: {$selectedGift->name} at milestone {$milestone}");
+        
+        return $allocation;
+    }
+
+    /**
+     * Send email notification when a gift is won
+     */
+    private function sendGiftNotificationEmail($player, $gift, $milestone)
+    {
+        try {
+            $user = $player->user;
+            
+            // Construire l'URL de la page des cadeaux
+            $giftsUrl = config('app.frontend_url', 'http://localhost:3000') . '/gifts';
+            
+            // Utiliser l'EmailService pour envoyer via le template GIFT_WON
+            $emailService = app(\App\Services\EmailService::class);
+            $emailService->sendGiftWonEmail(
+                $user->email,
+                $user->name ?? 'Joueur', // prénom
+                '', // nom (si disponible)
+                $gift->name,
+                $gift->description ?? 'Vous avez gagné un cadeau !',
+                $giftsUrl
+            );
+            
+            \Log::info("Gift won email sent to {$user->email} for gift: {$gift->name} at milestone {$milestone}");
+            
+        } catch (\Exception $e) {
+            \Log::error("Failed to send gift notification email: " . $e->getMessage());
+        }
     }
 }

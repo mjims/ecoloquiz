@@ -179,6 +179,31 @@ class ApiClient {
       body: JSON.stringify({ answers }),
     });
   }
+
+  async getPlayerGifts() {
+    return this.request<{
+      gifts: Array<{
+        id: string;
+        gift_id: string;
+        player_id: string;
+        allocated_at: string;
+        status: string;
+        redeemed_at: string | null;
+        gift: {
+          id: string;
+          name: string;
+          description: string;
+          image_url: string;
+          company_name: string;
+        };
+      }>;
+      next_milestone: number;
+      points_to_next: number;
+      current_points: number;
+    }>('/player/gifts', {
+      method: 'GET',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

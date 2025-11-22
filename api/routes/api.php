@@ -50,6 +50,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('player/quiz/{id}/play', [PlayerDashboardController::class, 'getQuizToPlay']);
     Route::post('player/quiz/{quizId}/validate-answer', [PlayerDashboardController::class, 'validateAnswer']);
     Route::post('player/quiz/{id}/submit', [PlayerDashboardController::class, 'submitQuiz']);
+    Route::get('player/gifts', [PlayerDashboardController::class, 'getPlayerGifts']);
 });
 
 // Admin-only user creation
