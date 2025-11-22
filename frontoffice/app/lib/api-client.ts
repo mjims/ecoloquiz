@@ -178,6 +178,14 @@ class ApiClient {
       explanation?: string;
       new_total_points?: number;
       is_multiple_answers?: boolean;
+      won_gift?: {
+        id: string;
+        name: string;
+        description: string;
+        image_url: string;
+        company_name: string;
+        milestone: number;
+      };
     }>(`/player/quiz/${quizId}/validate-answer`, {
       method: 'POST',
       body: JSON.stringify(payload),

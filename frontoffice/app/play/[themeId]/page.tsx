@@ -7,6 +7,7 @@ import Footer from '../../components/Footer';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { apiClient } from '@/lib/api-client';
 import { CheckCircle, XCircle, AlertCircle, ArrowRight, Star } from 'lucide-react';
+import GiftAnimation from '../../components/GiftAnimation';
 
 interface AnswerOption {
   id: string;
@@ -31,6 +32,14 @@ interface ValidationResult {
   explanation?: string;
   new_total_points?: number;
   is_multiple_answers?: boolean;
+  won_gift?: {
+    id: string;
+    name: string;
+    description: string;
+    image_url: string;
+    company_name: string;
+    milestone: number;
+  };
 }
 
 interface QuestionData {
@@ -70,6 +79,8 @@ function PlayPageContent() {
   const [isValidating, setIsValidating] = useState(false);
   const [themeCompleted, setThemeCompleted] = useState(false);
   const [otherThemes, setOtherThemes] = useState<any[]>([]);
+  const [wonGift, setWonGift] = useState<ValidationResult['won_gift'] | null>(null);
+  const [isWaitingForGiftAnimation, setIsWaitingForGiftAnimation] = useState(false);
 
   const [noQuestions, setNoQuestions] = useState(false);
 
@@ -139,8 +150,22 @@ function PlayPageContent() {
       );
 
       if (response.data) {
+        console.log('Validation response:', response.data);
         setValidationResult(response.data);
         setShowFeedback(true);
+
+        // Check if gift was won - delay animation by 5 seconds to show feedback first
+        if (response.data.won_gift) {
+          console.log('🎁 Gift won! Will show animation in 5 seconds...', response.data.won_gift);
+          const giftData = response.data.won_gift;
+          setIsWaitingForGiftAnimation(true);
+          setTimeout(() => {
+            setWonGift(giftData);
+            setIsWaitingForGiftAnimation(false);
+          }, 5000); // 5 second delay
+        } else {
+          console.log('No gift won, current points:', response.data.new_total_points);
+        }
       } else if (response.error) {
         console.error('Error validating answer:', response.error);
         alert(response.error);
@@ -152,8 +177,15 @@ function PlayPageContent() {
     }
   };
 
+
+  const handleCloseGiftAnimation = () => {
+    // Just close the gift animation modal
+    setWonGift(null);
+    // Keep feedback visible so user can see their answer result
+  };
+
   const handleContinue = () => {
-    // Fetch next question
+    // Fetch next question (called from feedback screen)
     fetchNextQuestion();
   };
 
@@ -509,9 +541,13 @@ function PlayPageContent() {
             ) : (
               <button
                 onClick={handleContinue}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition-colors text-sm lg:text-base"
+                disabled={isWaitingForGiftAnimation}
+                className={`w-full font-medium py-3 px-6 rounded-lg transition-colors text-sm lg:text-base ${isWaitingForGiftAnimation
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-teal-600 hover:bg-teal-700 text-white'
+                  }`}
               >
-                Continuer
+                {isWaitingForGiftAnimation ? '🎁 Cadeau en préparation...' : 'Continuer'}
               </button>
             )}
           </div>
@@ -519,6 +555,14 @@ function PlayPageContent() {
       </main>
 
       <Footer />
+
+      {/* Gift Animation Modal */}
+      {wonGift && (
+        <GiftAnimation
+          gift={wonGift}
+          onContinue={handleCloseGiftAnimation}
+        />
+      )}
     </div>
   );
 }

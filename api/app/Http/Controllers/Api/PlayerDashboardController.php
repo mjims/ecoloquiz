@@ -654,9 +654,9 @@ class PlayerDashboardController extends Controller
         $player->save();
 
         // Check if player reached a new milestone and allocate gift
-        $this->checkAndAllocateMilestoneGift($player);
+        $wonGifts = $this->checkAndAllocateMilestoneGift($player);
 
-        return response()->json([
+        $response = [
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
             'correct_answer_ids' => array_values($correctIds), // Ensure array is indexed
@@ -664,7 +664,14 @@ class PlayerDashboardController extends Controller
             'explanation' => $question->explanation,
             'new_total_points' => $player->points,
             'is_multiple_answers' => count($correctIds) > 1
-        ]);
+        ];
+
+        // Include won gift if milestone reached
+        if (!empty($wonGifts)) {
+            $response['won_gift'] = $wonGifts[0]; // Return the first gift won
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -895,10 +902,12 @@ class PlayerDashboardController extends Controller
 
     /**
      * Check if player reached a new 100-point milestone and allocate gift(s)
+     * Returns array of won gifts with their details
      */
     private function checkAndAllocateMilestoneGift($player)
     {
         $currentMilestone = floor($player->points / 100) * 100;
+        $wonGifts = [];
         
         // Check if a new milestone was reached
         if ($currentMilestone > $player->last_milestone && $currentMilestone >= 100) {
@@ -909,9 +918,21 @@ class PlayerDashboardController extends Controller
             
             // Handle multiple milestones crossed at once
             for ($milestone = $oldMilestone + 100; $milestone <= $currentMilestone; $milestone += 100) {
-                $this->drawAndAllocateGift($player, $milestone);
+                $allocation = $this->drawAndAllocateGift($player, $milestone);
+                if ($allocation) {
+                    $wonGifts[] = [
+                        'id' => $allocation->gift->id,
+                        'name' => $allocation->gift->name,
+                        'description' => $allocation->gift->description,
+                        'image_url' => $allocation->gift->image_url,
+                        'company_name' => $allocation->gift->company_name,
+                        'milestone' => $milestone
+                    ];
+                }
             }
         }
+        
+        return $wonGifts;
     }
 
     /**
@@ -964,6 +985,9 @@ class PlayerDashboardController extends Controller
             'allocated_at' => now(),
             'status' => 'PENDING'
         ]);
+        
+        // Load the gift relationship
+        $allocation->load('gift');
         
         // Send email notification
         $this->sendGiftNotificationEmail($player, $selectedGift, $milestone);
