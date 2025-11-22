@@ -9,6 +9,7 @@ use App\Models\Gift;
 use App\Models\Level;
 use App\Models\Player;
 use App\Models\PlayerAnswer;
+use App\Models\PlayerThemeProgress;
 use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\Theme;
@@ -220,13 +221,13 @@ class PlayerDashboardController extends Controller
             ]
         );
 
-        // Get the last answered question's theme
-        $lastAnswer = PlayerAnswer::where('player_id', $player->id)
-            ->with('question.quiz.theme')
-            ->orderBy('answered_at', 'desc')
+        // Get the most recently played theme from PlayerThemeProgress
+        $themeProgress = PlayerThemeProgress::where('player_id', $player->id)
+            ->with(['theme', 'currentLevel'])
+            ->orderBy('last_played_at', 'desc')
             ->first();
 
-        if (!$lastAnswer || !$lastAnswer->question || !$lastAnswer->question->quiz || !$lastAnswer->question->quiz->theme) {
+        if (!$themeProgress) {
             return response()->json([
                 'has_game_in_progress' => false,
                 'theme_id' => null,
@@ -234,23 +235,17 @@ class PlayerDashboardController extends Controller
             ]);
         }
 
-        $themeId = $lastAnswer->question->quiz->theme->id;
-        $themeName = $lastAnswer->question->quiz->theme->name;
+        $themeId = $themeProgress->theme_id;
+        $themeName = $themeProgress->theme->name;
+        $currentLevel = $themeProgress->currentLevel;
 
-        // Check if there are unanswered questions in this theme
-        $levels = Level::orderBy('order', 'asc')->get();
-        $currentLevel = Level::where('slug', $player->current_level)->first();
-        if (!$currentLevel) {
-            $currentLevel = $levels->first();
-        }
+        // Check if there are unanswered questions in this theme starting from current level
+        $levels = Level::where('order', '>=', $currentLevel->order)
+            ->orderBy('order', 'asc')
+            ->get();
 
-        // Check for unanswered questions
         $hasUnansweredQuestions = false;
         foreach ($levels as $lvl) {
-            if ($lvl->order < $currentLevel->order) {
-                continue;
-            }
-
             $quizzes = Quiz::where('theme_id', $themeId)
                 ->where('level_id', $lvl->id)
                 ->with(['questions'])
@@ -337,6 +332,25 @@ class PlayerDashboardController extends Controller
         // Get the theme
         $theme = Theme::findOrFail($themeId);
 
+        // Get or create player theme progress
+        $levels = Level::orderBy('order', 'asc')->get();
+        $firstLevel = $levels->first();
+        
+        $themeProgress = PlayerThemeProgress::firstOrCreate(
+            [
+                'player_id' => $player->id,
+                'theme_id' => $themeId
+            ],
+            [
+                'current_level_id' => $firstLevel->id,
+                'last_played_at' => now()
+            ]
+        );
+
+        // Update last_played_at
+        $themeProgress->last_played_at = now();
+        $themeProgress->save();
+
         // Check if there are any questions at all for this theme
         $totalQuestionsCount = Question::whereHas('quiz', function($q) use ($themeId) {
             $q->where('theme_id', $themeId);
@@ -351,14 +365,8 @@ class PlayerDashboardController extends Controller
             ], 200);
         }
 
-        // Get all levels ordered by order
-        $levels = Level::orderBy('order', 'asc')->get();
-
-        // Find current level
-        $currentLevel = Level::where('slug', $player->current_level)->first();
-        if (!$currentLevel) {
-            $currentLevel = $levels->first(); // Default to first level
-        }
+        // Get current level from theme progress
+        $currentLevel = $themeProgress->currentLevel;
 
         // Try to find an unanswered question starting from current level
         $question = null;
@@ -412,10 +420,10 @@ class PlayerDashboardController extends Controller
             ], 200);
         }
 
-        // Update player's current level if needed
-        if ($level->slug !== $player->current_level) {
-            $player->current_level = $level->slug;
-            $player->save();
+        // Update theme progress current level if we've advanced
+        if ($level->id !== $themeProgress->current_level_id) {
+            $themeProgress->current_level_id = $level->id;
+            $themeProgress->save();
         }
 
         // Remove is_correct from options and check for multiple answers
