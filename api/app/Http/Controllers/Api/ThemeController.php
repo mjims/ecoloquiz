@@ -40,6 +40,39 @@ class ThemeController extends Controller
         $themes = Theme::orderBy('created_at', 'desc')
             ->paginate($perPage);
 
+        // If user is authenticated, add completion status
+        if ($request->user()) {
+            $player = \App\Models\Player::where('user_id', $request->user()->id)->first();
+            
+            if ($player) {
+                $themes->getCollection()->transform(function ($theme) use ($player) {
+                    // Count total questions for this theme
+                    $totalQuestions = \App\Models\Question::whereHas('quiz', function($q) use ($theme) {
+                        $q->where('theme_id', $theme->id);
+                    })->count();
+                    
+                    // Count answered questions for this theme
+                    $answeredQuestions = \App\Models\PlayerAnswer::where('player_id', $player->id)
+                        ->whereHas('question.quiz', function($q) use ($theme) {
+                            $q->where('theme_id', $theme->id);
+                        })->count();
+                    
+                    // Add completion status
+                    $theme->is_completed = $totalQuestions > 0 && $answeredQuestions >= $totalQuestions;
+                    $theme->progress_percentage = $totalQuestions > 0 ? round(($answeredQuestions / $totalQuestions) * 100) : 0;
+                    
+                    return $theme;
+                });
+            } else {
+                // No player yet, all themes are incomplete
+                $themes->getCollection()->transform(function ($theme) {
+                    $theme->is_completed = false;
+                    $theme->progress_percentage = 0;
+                    return $theme;
+                });
+            }
+        }
+
         return response()->json($themes);
     }
 

@@ -4,33 +4,54 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 
 interface User {
-  id: number;
-  prenom: string;
-  nom: string;
+  id: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
-  adresse: string;
-  code_postal: string;
-  telephone: string;
-  pts_niv_1: number;
-  pts_niv_2: number;
-  pts_niv_3: number;
-  cadeau: string;
-  cadeau_pts_niv_1: string;
-  cadeau_pts_niv_2: string;
-  cadeau_pts_niv_3: string;
   created_at: string;
 }
 
+interface Allocation {
+  id: string;
+  gift: {
+    name: string;
+    company_name?: string;
+  };
+  allocated_at: string;
+  status: string;
+}
+
+interface Player {
+  id: string;
+  user_id: string;
+  points: number;
+  last_milestone: number;
+  user?: User;
+  allocations?: Allocation[];
+  created_at: string;
+}
+
+interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number;
+  to: number;
+}
+
 export default function AbonnesPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    loadPlayers();
+  }, [currentPage]);
 
-  const loadUsers = async () => {
+  const loadPlayers = async () => {
     setIsLoading(true);
     setError('');
 
@@ -39,13 +60,34 @@ export default function AbonnesPage() {
     if (response.error) {
       setError(response.error);
     } else if (response.data) {
-      // L'API retourne un objet de pagination avec les données dans response.data.data
       const responseData: any = response.data;
-      const usersData = Array.isArray(responseData) ? responseData : responseData.data || [];
-      setUsers(usersData);
+
+      // Handle paginated response
+      if (responseData.data && Array.isArray(responseData.data)) {
+        setPlayers(responseData.data);
+        setPaginationMeta({
+          current_page: responseData.current_page || 1,
+          last_page: responseData.last_page || 1,
+          per_page: responseData.per_page || 15,
+          total: responseData.total || 0,
+          from: responseData.from || 0,
+          to: responseData.to || 0,
+        });
+      } else if (Array.isArray(responseData)) {
+        setPlayers(responseData);
+        setPaginationMeta(null);
+      } else {
+        setPlayers([]);
+      }
     }
 
     setIsLoading(false);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (paginationMeta && newPage >= 1 && newPage <= paginationMeta.last_page) {
+      setCurrentPage(newPage);
+    }
   };
 
   if (isLoading) {
@@ -76,11 +118,14 @@ export default function AbonnesPage() {
             Gestion des Abonnés
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Liste complète des joueurs inscrits ({users.length} abonnés)
+            {paginationMeta
+              ? `${paginationMeta.total} abonnés au total - Page ${paginationMeta.current_page}/${paginationMeta.last_page}`
+              : `${players.length} abonnés`
+            }
           </p>
         </div>
         <button
-          onClick={loadUsers}
+          onClick={loadPlayers}
           className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
         >
           <svg
@@ -113,94 +158,75 @@ export default function AbonnesPage() {
                   Nom
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Mail
+                  Email
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Adresse
+                  Points Total
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Code Postal
+                  Dernier Palier
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Téléphone
+                  Cadeaux Gagnés
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Pts niv 1
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Cadeau
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Pts niv 2
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Cadeau
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Pts niv 3
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap">
-                  Cadeau
+                  Date d'inscription
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {users.length === 0 ? (
+              {players.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
                   >
                     Aucun abonné trouvé
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                players.map((player) => (
                   <tr
-                    key={user.id}
+                    key={player.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.prenom || '-'}
+                      {player.user?.first_name || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.nom || '-'}
+                      {player.user?.last_name || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.email}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.adresse || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.code_postal || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.telephone || '-'}
+                      {player.user?.email || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        {user.pts_niv_1 || 0} pts
+                        {player.points || 0} pts
                       </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.cadeau_pts_niv_1 || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                        {user.pts_niv_2 || 0} pts
+                        {player.last_milestone || 0} pts
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.cadeau_pts_niv_2 || '-'}
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {player.allocations && player.allocations.length > 0 ? (
+                        <div className="space-y-1 max-w-xs">
+                          {player.allocations.map((allocation) => (
+                            <div
+                              key={allocation.id}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 mr-1 mb-1"
+                            >
+                              {allocation.gift.name}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        {user.pts_niv_3 || 0} pts
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {user.cadeau_pts_niv_3 || '-'}
+                      {new Date(player.created_at).toLocaleDateString('fr-FR')}
                     </td>
                   </tr>
                 ))
@@ -210,33 +236,73 @@ export default function AbonnesPage() {
         </div>
       </div>
 
-      {/* Note d'information */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <svg
-            className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              Tableau scrollable
-            </h3>
-            <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-              Le tableau défile horizontalement si nécessaire. Utilisez la molette de votre souris
-              ou faites glisser pour voir toutes les colonnes.
+      {/* Pagination */}
+      {paginationMeta && paginationMeta.last_page > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-4 py-3 rounded-lg shadow">
+          <div className="flex items-center">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Affichage de <span className="font-medium">{paginationMeta.from}</span> à{' '}
+              <span className="font-medium">{paginationMeta.to}</span> sur{' '}
+              <span className="font-medium">{paginationMeta.total}</span> résultats
             </p>
           </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                }`}
+            >
+              Précédent
+            </button>
+
+            <div className="flex items-center space-x-1">
+              {[...Array(paginationMeta.last_page)].map((_, index) => {
+                const pageNum = index + 1;
+                // Show first page, last page, current page, and pages around current
+                if (
+                  pageNum === 1 ||
+                  pageNum === paginationMeta.last_page ||
+                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${pageNum === currentPage
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                } else if (
+                  pageNum === currentPage - 2 ||
+                  pageNum === currentPage + 2
+                ) {
+                  return <span key={pageNum} className="px-2 text-gray-500">...</span>;
+                }
+                return null;
+              })}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === paginationMeta.last_page}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${currentPage === paginationMeta.last_page
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                }`}
+            >
+              Suivant
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
+

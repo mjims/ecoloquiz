@@ -52,27 +52,58 @@ class PlayerDashboardController extends Controller
     {
         $user = $request->user();
 
-        // Get or create player for this user
+        // Get or create player
         $player = Player::firstOrCreate(
             ['user_id' => $user->id],
             [
                 'points' => 0,
-                'current_level' => 'DECOUVERTE',
+                'current_level' => 'decouverte',
                 'last_played' => null,
                 'zone_id' => null
             ]
         );
 
-        // Get the first level (Niveau 1)
+        // Get first level
         $firstLevel = Level::orderBy('order', 'asc')->first();
 
         if (!$firstLevel) {
             return response()->json(['error' => 'No levels available'], 404);
         }
 
-        // Get a random quiz from level 1
+        // Get all themes
+        $allThemes = Theme::all();
+        
+        // Filter out completed themes
+        $incompleteThemesIds = [];
+        foreach ($allThemes as $theme) {
+            // Check if theme is completed
+            $totalQuestions = Question::whereHas('quiz', function($q) use ($theme) {
+                $q->where('theme_id', $theme->id);
+            })->count();
+            
+            if ($totalQuestions === 0) {
+                continue; // Skip themes with no questions
+            }
+            
+            $answeredQuestions = PlayerAnswer::where('player_id', $player->id)
+                ->whereHas('question.quiz', function($q) use ($theme) {
+                    $q->where('theme_id', $theme->id);
+                })->count();
+            
+            // Theme is incomplete if not all questions are answered
+            if ($answeredQuestions < $totalQuestions) {
+                $incompleteThemesIds[] = $theme->id;
+            }
+        }
+        
+        if (empty($incompleteThemesIds)) {
+            return response()->json(['message' => 'All themes completed!'], 200);
+        }
+
+        // Get a random quiz from incomplete themes at level 1
         $quiz = Quiz::with(['theme', 'level'])
             ->where('level_id', $firstLevel->id)
+            ->whereIn('theme_id', $incompleteThemesIds)
             ->inRandomOrder()
             ->first();
 

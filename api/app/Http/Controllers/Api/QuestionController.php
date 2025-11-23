@@ -66,13 +66,49 @@ class QuestionController extends Controller
     {
         $validated = $request->validate([
             'per_page' => 'nullable|integer|min:1|max:100',
+            'theme_id' => 'nullable|uuid|exists:themes,id',
         ]);
 
         $perPage = $validated['per_page'] ?? 15;
 
-        $questions = Question::with(['quiz.theme', 'quiz.level'])
-            ->orderBy('created_at', 'desc')
+        $query = Question::with(['quiz.theme', 'quiz.level']);
+        
+        // Filter by theme if provided
+        if (isset($validated['theme_id'])) {
+            $query->whereHas('quiz', function($q) use ($validated) {
+                $q->where('theme_id', $validated['theme_id']);
+            });
+        }
+        
+        $questions = $query->orderBy('created_at', 'desc')
             ->paginate($perPage);
+
+        // Add statistics to each question
+        $questions->getCollection()->transform(function ($question) {
+            // Count total answers for this question
+            $totalAnswers = \App\Models\PlayerAnswer::where('question_id', $question->id)->count();
+            
+            // Count correct answers (is_correct = true)
+            $correctAnswers = \App\Models\PlayerAnswer::where('question_id', $question->id)
+                ->where('is_correct', true)
+                ->count();
+            
+            // Count incorrect answers
+            $incorrectAnswers = $totalAnswers - $correctAnswers;
+            
+            // Calculate percentages
+            $question->good_answers_percentage = $totalAnswers > 0 
+                ? round(($correctAnswers / $totalAnswers) * 100) 
+                : 0;
+            
+            $question->bad_answers_percentage = $totalAnswers > 0 
+                ? round(($incorrectAnswers / $totalAnswers) * 100) 
+                : 0;
+            
+            $question->total_answers = $totalAnswers;
+            
+            return $question;
+        });
 
         return response()->json($questions);
     }

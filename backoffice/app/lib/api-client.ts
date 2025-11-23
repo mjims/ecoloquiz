@@ -118,8 +118,12 @@ class ApiClient {
   }
 
   // Questions endpoints
-  async getQuestions(page: number = 1, perPage: number = 15) {
-    return this.request<any>(`/questions?page=${page}&per_page=${perPage}`, {
+  async getQuestions(page: number = 1, perPage: number = 15, themeId?: string) {
+    let url = `/questions?page=${page}&per_page=${perPage}`;
+    if (themeId) {
+      url += `&theme_id=${themeId}`;
+    }
+    return this.request<any>(url, {
       method: 'GET',
     });
   }

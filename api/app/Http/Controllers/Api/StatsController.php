@@ -91,7 +91,9 @@ class StatsController extends Controller
                 continue;
             }
 
-            $levelPlayersQuery = (clone $playersQuery)->where('current_level', $level->order);
+            $levelPlayersQuery = (clone $playersQuery)->whereHas('theme_progress', function($q) use ($level) {
+                $q->where('current_level_id', $level->id);
+            });
             $levelPlayersCount = $levelPlayersQuery->count();
 
             // % of players at this level
@@ -111,12 +113,17 @@ class StatsController extends Controller
                 ? round(($playersWithGifts / $levelPlayersCount) * 100)
                 : 0;
 
-            // Average time on game (simulated for now - would need session tracking)
-            // For now, we'll use a placeholder based on points or last_played
-            $avgTime = $levelPlayersQuery->avg(
-                DB::raw('TIMESTAMPDIFF(MINUTE, created_at, COALESCE(last_played, NOW()))')
-            ) ?? 0;
-            $avgTime = round($avgTime);
+            // Average time on game (estimated based on questions answered)
+            // Estimate: 30 seconds per question (reading + thinking + answering)
+            $avgQuestionsAnswered = DB::table('player_answers')
+                ->join('players', 'player_answers.player_id', '=', 'players.id')
+                ->whereIn('players.id', $levelPlayersQuery->pluck('id'))
+                ->select('player_answers.player_id', DB::raw('COUNT(*) as question_count'))
+                ->groupBy('player_answers.player_id')
+                ->avg('question_count') ?? 0;
+            
+            // Convert to minutes (30 seconds per question = 0.5 minutes)
+            $avgTime = round($avgQuestionsAnswered * 0.5);
 
             $levelStats[] = [
                 'level' => $level->order,
@@ -124,7 +131,7 @@ class StatsController extends Controller
                 'level_id' => $level->id,
                 'percent_subscribers' => $percentSubscribers,
                 'percent_gift_winners' => $percentGiftWinners,
-                'avg_time_minutes' => $avgTime > 0 ? $avgTime : rand(25, 40), // Temporary random for demo
+                'avg_time_minutes' => $avgTime,
             ];
         }
 
@@ -153,7 +160,7 @@ class StatsController extends Controller
     public function filters()
     {
         $zones = Zone::select('id', 'name', 'type')->orderBy('name')->get();
-        $themes = Theme::select('id', 'name')->orderBy('name')->get();
+        $themes = Theme::select('id', 'title as name')->orderBy('title')->get();
         $levels = Level::select('id', 'name', 'order')->orderBy('order')->get();
 
         return response()->json([

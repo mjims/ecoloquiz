@@ -12,6 +12,8 @@ interface Theme {
     title: string;
     description?: string;
     image_url?: string;
+    is_completed?: boolean;
+    progress_percentage?: number;
 }
 
 function QuizSelectionContent() {
@@ -78,11 +80,21 @@ function QuizSelectionContent() {
                         {themes.map((theme) => (
                             <div
                                 key={theme.id}
-                                className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer transform hover:scale-105"
-                                onClick={() => handleThemeSelect(theme.id)}
+                                className={`bg-white rounded-lg shadow-md overflow-hidden relative ${theme.is_completed
+                                        ? 'opacity-60 cursor-not-allowed'
+                                        : 'hover:shadow-xl transition-shadow duration-300 cursor-pointer transform hover:scale-105'
+                                    }`}
+                                onClick={() => !theme.is_completed && handleThemeSelect(theme.id)}
                             >
+                                {/* Completed Badge */}
+                                {theme.is_completed && (
+                                    <div className="absolute top-3 right-3 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                                        ✓ Terminé
+                                    </div>
+                                )}
                                 {/* Theme Image or Icon */}
-                                <div className="h-40 bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                                <div className={`h-40 bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center ${theme.is_completed ? 'grayscale' : ''
+                                    }`}>
                                     {theme.image_url ? (
                                         <img
                                             src={theme.image_url}

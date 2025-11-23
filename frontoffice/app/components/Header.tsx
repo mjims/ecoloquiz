@@ -1,10 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { storage } from '../lib/storage';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = storage.getToken();
+    setIsAuthenticated(!!token);
+  }, []);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -26,12 +34,28 @@ export default function Header() {
             >
               Accueil
             </Link>
+            {isAuthenticated && (
+              <Link
+                href="/dashboard"
+                className="text-gray-700 hover:text-green-600 transition-colors font-medium"
+              >
+                Tableau de bord
+              </Link>
+            )}
             <Link
               href="/quiz"
               className="text-gray-700 hover:text-green-600 transition-colors font-medium"
             >
               Quiz
             </Link>
+            {isAuthenticated && (
+              <Link
+                href="/gifts"
+                className="text-gray-700 hover:text-green-600 transition-colors font-medium"
+              >
+                Mes cadeaux
+              </Link>
+            )}
             <Link
               href="/about"
               className="text-gray-700 hover:text-green-600 transition-colors font-medium"
@@ -108,6 +132,17 @@ export default function Header() {
                   Accueil
                 </Link>
               </li>
+              {isAuthenticated && (
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="block text-gray-700 hover:text-green-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Tableau de bord
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   href="/quiz"
@@ -117,6 +152,17 @@ export default function Header() {
                   Quiz
                 </Link>
               </li>
+              {isAuthenticated && (
+                <li>
+                  <Link
+                    href="/gifts"
+                    className="block text-gray-700 hover:text-green-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Mes cadeaux
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   href="/profile"

@@ -14,6 +14,18 @@ interface Question {
   created_at: string;
   good_answers_percentage: number;
   bad_answers_percentage: number;
+  total_answers?: number;
+  quiz?: {
+    theme?: {
+      id: string;
+      title: string;
+    };
+  };
+}
+
+interface Theme {
+  id: string;
+  title: string;
 }
 
 const PAGE_NAME = 'questions';
@@ -31,16 +43,31 @@ export default function QuestionsPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [selectedThemeId, setSelectedThemeId] = useState<string>('');
 
   useEffect(() => {
+    loadThemes();
     loadQuestions(currentPage);
-  }, [currentPage]);
+  }, [currentPage, selectedThemeId]);
+
+  const loadThemes = async () => {
+    const response = await apiClient.getThemes();
+    if (response.data) {
+      const themesData = Array.isArray(response.data) ? response.data : response.data.data || [];
+      setThemes(themesData);
+    }
+  };
 
   const loadQuestions = async (page: number, itemsPerPage?: number) => {
     setIsLoading(true);
     setError('');
 
-    const response = await apiClient.getQuestions(page, itemsPerPage || perPage);
+    const response = await apiClient.getQuestions(
+      page,
+      itemsPerPage || perPage,
+      selectedThemeId || undefined
+    );
 
     if (response.error) {
       setError(response.error);
@@ -181,23 +208,49 @@ export default function QuestionsPage() {
 
       {/* Barre d'outils et filtres */}
       <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-4 py-3 rounded-lg shadow">
-        <div className="flex items-center gap-2">
-          <label htmlFor="perPage" className="text-sm text-gray-700 dark:text-gray-300">
-            Afficher
-          </label>
-          <select
-            id="perPage"
-            value={perPage}
-            onChange={(e) => handlePerPageChange(Number(e.target.value))}
-            className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-          <span className="text-sm text-gray-700 dark:text-gray-300">par page</span>
+        <div className="flex items-center gap-4">
+          {/* Items per page */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="perPage" className="text-sm text-gray-700 dark:text-gray-300">
+              Afficher
+            </label>
+            <select
+              id="perPage"
+              value={perPage}
+              onChange={(e) => handlePerPageChange(Number(e.target.value))}
+              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-gray-700 dark:text-gray-300">par page</span>
+          </div>
+
+          {/* Theme filter */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="themeFilter" className="text-sm text-gray-700 dark:text-gray-300">
+              Thème:
+            </label>
+            <select
+              id="themeFilter"
+              value={selectedThemeId}
+              onChange={(e) => {
+                setSelectedThemeId(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">Tous les thèmes</option>
+              {themes.map((theme) => (
+                <option key={theme.id} value={theme.id}>
+                  {theme.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         {totalItems > 0 && (
           <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -339,14 +392,26 @@ export default function QuestionsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      {question.good_answers_percentage}%
-                    </span>
+                    {question.total_answers && question.total_answers > 0 ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {question.good_answers_percentage}%
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                      {question.bad_answers_percentage}%
-                    </span>
+                    {question.total_answers && question.total_answers > 0 ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          {question.bad_answers_percentage}%
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -403,49 +468,48 @@ export default function QuestionsPage() {
 
               {/* Numéros de pages */}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
 
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                    currentPage === pageNum
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentPage === pageNum
                       ? 'bg-green-600 text-white'
                       : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
 
-            {/* Bouton Page suivante */}
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              ›
-            </button>
+              {/* Bouton Page suivante */}
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                ›
+              </button>
 
-            {/* Bouton Dernière page */}
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              ≫
-            </button>
+              {/* Bouton Dernière page */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                ≫
+              </button>
             </div>
           )}
         </div>
