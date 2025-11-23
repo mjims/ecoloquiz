@@ -298,13 +298,13 @@ export default function StatsPage() {
               <>
                 {/* First row with totals */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <td rowSpan={3} className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                     {stats.total_subscriptions}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                  <td rowSpan={3} className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                     {stats.total_connections}
                   </td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                  <td rowSpan={3} className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                     {stats.participation_rate}%
                   </td>
                   <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
@@ -319,7 +319,7 @@ export default function StatsPage() {
                   <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                     {stats.level_stats[0]?.avg_time_minutes || 0}min
                   </td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                  <td rowSpan={3} className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                     {stats.new_partners > 0 ? stats.new_partners : ''}
                   </td>
                 </tr>
@@ -327,9 +327,6 @@ export default function StatsPage() {
                 {/* Additional rows for other levels */}
                 {stats.level_stats.slice(1).map((levelStat, index) => (
                   <tr key={levelStat.level} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4"></td>
-                    <td className="px-6 py-4"></td>
-                    <td className="px-6 py-4"></td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       {levelStat.level}
                     </td>
@@ -341,9 +338,6 @@ export default function StatsPage() {
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       {levelStat.avg_time_minutes}min
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
-                      {index === 1 && stats.new_partners > 0 ? stats.new_partners : ''}
                     </td>
                   </tr>
                 ))}

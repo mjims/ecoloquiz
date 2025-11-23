@@ -70,7 +70,7 @@ export default function EditGiftModal({ isOpen, onClose, onSuccess, giftId }: Ed
   }, [isOpen, giftId]);
 
   const loadLevels = async () => {
-    const response = await apiClient.getLevels(1, 100);
+    const response = await apiClient.getLevels();
     if (response.data) {
       const levelsData = Array.isArray(response.data) ? response.data : response.data.data || [];
       setLevels(levelsData);
@@ -226,8 +226,8 @@ export default function EditGiftModal({ isOpen, onClose, onSuccess, giftId }: Ed
     if (!giftId) return;
 
     // Validation
-    if (!code || !name || !companyName || !totalQuantity) {
-      setError('Veuillez remplir tous les champs obligatoires (code, nom, enseigne, quantité totale).');
+    if (!name || !companyName || !totalQuantity) {
+      setError('Veuillez remplir tous les champs obligatoires (nom, enseigne, quantité totale).');
       return;
     }
 
@@ -248,7 +248,7 @@ export default function EditGiftModal({ isOpen, onClose, onSuccess, giftId }: Ed
     setIsSubmitting(true);
 
     const giftData = {
-      code: code.trim(),
+      // Code cannot be changed after creation
       name: name.trim(),
       company_name: companyName.trim(),
       siret: siret.trim() || null,
@@ -322,16 +322,14 @@ export default function EditGiftModal({ isOpen, onClose, onSuccess, giftId }: Ed
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Code <span className="text-red-500">*</span>
+                    Code (non modifiable)
                   </label>
                   <input
                     type="text"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    maxLength={10}
-                    placeholder="Ex: C1, C2"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                    required
+                    readOnly
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                   />
                 </div>
                 <div>

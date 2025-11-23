@@ -71,20 +71,8 @@ export default function AdminLoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                />
-              </svg>
+            <div className="w-16 h-16  rounded-full flex items-center justify-center">
+              <div className="text-6xl">🌱</div>
             </div>
           </div>
           <h1 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-2">

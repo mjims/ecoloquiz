@@ -113,17 +113,26 @@ class StatsController extends Controller
                 ? round(($playersWithGifts / $levelPlayersCount) * 100)
                 : 0;
 
-            // Average time on game (estimated based on questions answered)
-            // Estimate: 30 seconds per question (reading + thinking + answering)
-            $avgQuestionsAnswered = DB::table('player_answers')
-                ->join('players', 'player_answers.player_id', '=', 'players.id')
-                ->whereIn('players.id', $levelPlayersQuery->pluck('id'))
-                ->select('player_answers.player_id', DB::raw('COUNT(*) as question_count'))
-                ->groupBy('player_answers.player_id')
-                ->avg('question_count') ?? 0;
+            // Average time on game (REAL calculation based on timestamps)
+            // Calculate time between first and last answer for each player
+            $playerIds = $levelPlayersQuery->pluck('id')->toArray();
             
-            // Convert to minutes (30 seconds per question = 0.5 minutes)
-            $avgTime = round($avgQuestionsAnswered * 0.5);
+            if (count($playerIds) > 0) {
+                $avgPlayTimeSeconds = DB::table('player_answers')
+                    ->whereIn('player_id', $playerIds)
+                    ->selectRaw('
+                        player_id, 
+                        TIMESTAMPDIFF(SECOND, MIN(created_at), MAX(created_at)) as seconds_played
+                    ')
+                    ->groupBy('player_id')
+                    ->get()
+                    ->avg('seconds_played') ?? 0;
+                
+                // Convert to minutes and round
+                $avgTime = round($avgPlayTimeSeconds / 60);
+            } else {
+                $avgTime = 0;
+            }
 
             $levelStats[] = [
                 'level' => $level->order,

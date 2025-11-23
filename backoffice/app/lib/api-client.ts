@@ -194,6 +194,55 @@ class ApiClient {
     });
   }
 
+  // Question Import endpoints
+  async downloadQuestionTemplate(type: 'questions' | 'unified' = 'questions') {
+    const { downloadQuestionTemplate } = await import('@/lib/templateGenerator');
+    downloadQuestionTemplate(type);
+  }
+
+  async validateQuestionImport(file: File, type: 'questions' | 'unified' = 'questions') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    return this.request<any>('/questions/import/validate', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let browser set Content-Type for FormData
+    });
+  }
+
+  async executeQuestionImport(data: any, type: 'questions' | 'unified') {
+    return this.request<any>('/questions/import/execute', {
+      method: 'POST',
+      body: JSON.stringify({ data, type }),
+    });
+  }
+
+  // Theme Import endpoints
+  async downloadThemeTemplate() {
+    const { downloadThemeTemplate } = await import('@/lib/templateGenerator');
+    downloadThemeTemplate();
+  }
+
+  async validateThemeImport(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.request<any>('/themes/import/validate', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    });
+  }
+
+  async executeThemeImport(data: any) {
+    return this.request<any>('/themes/import/execute', {
+      method: 'POST',
+      body: JSON.stringify({ data }),
+    });
+  }
+
   // Regions endpoints
   async getRegions() {
     return this.request<any>('/regions', {
@@ -444,12 +493,15 @@ class ApiClient {
   }
 
   // Gifts endpoints
-  async getGifts(page: number = 1, perPage: number = 15, level_id?: string, zone_id?: string, company_name?: string) {
+  async getGifts(page: number = 1, perPage: number = 15, level_ids?: string[], zone_id?: string, company_name?: string) {
     const params = new URLSearchParams({
       page: page.toString(),
       per_page: perPage.toString()
     });
-    if (level_id) params.append('level_id', level_id);
+
+    if (level_ids && level_ids.length > 0) {
+      level_ids.forEach(id => params.append('level_id[]', id));
+    }
     if (zone_id) params.append('zone_id', zone_id);
     if (company_name) params.append('company_name', company_name);
 
@@ -481,6 +533,12 @@ class ApiClient {
   async deleteGift(id: string) {
     return this.request<any>(`/gifts/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async getNextGiftCode() {
+    return this.request<{ code: string }>('/gifts/next-code', {
+      method: 'GET',
     });
   }
 

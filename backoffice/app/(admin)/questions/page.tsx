@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
-import { getPagePreference, savePagePreference } from '@/lib/pagination-preferences';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/common/PaginationControls';
 import CreateQuestionModal from '@/components/questions/CreateQuestionModal';
 import CreateThemeModal from '@/components/questions/CreateThemeModal';
 import QuestionDetailsModal from '@/components/questions/QuestionDetailsModal';
@@ -28,16 +29,11 @@ interface Theme {
   title: string;
 }
 
-const PAGE_NAME = 'questions';
-
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [perPage, setPerPage] = useState(() => getPagePreference(PAGE_NAME, 15));
+  const { currentPage, perPage, totalPages, totalItems, setCurrentPage, setPerPage, setTotalPages, setTotalItems } = usePagination();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateThemeModalOpen, setIsCreateThemeModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -82,9 +78,6 @@ export default function QuestionsPage() {
       if (response.data.total) {
         setTotalItems(response.data.total);
       }
-      if (response.data.per_page) {
-        setPerPage(response.data.per_page);
-      }
     }
 
     setIsLoading(false);
@@ -103,13 +96,6 @@ export default function QuestionsPage() {
       // Recharger la liste
       loadQuestions(currentPage);
     }
-  };
-
-  const handlePerPageChange = (newPerPage: number) => {
-    setPerPage(newPerPage);
-    savePagePreference(PAGE_NAME, newPerPage);
-    setCurrentPage(1);
-    loadQuestions(1, newPerPage);
   };
 
   if (isLoading) {
@@ -209,26 +195,6 @@ export default function QuestionsPage() {
       {/* Barre d'outils et filtres */}
       <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-4 py-3 rounded-lg shadow">
         <div className="flex items-center gap-4">
-          {/* Items per page */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="perPage" className="text-sm text-gray-700 dark:text-gray-300">
-              Afficher
-            </label>
-            <select
-              id="perPage"
-              value={perPage}
-              onChange={(e) => handlePerPageChange(Number(e.target.value))}
-              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className="text-sm text-gray-700 dark:text-gray-300">par page</span>
-          </div>
-
           {/* Theme filter */}
           <div className="flex items-center gap-2">
             <label htmlFor="themeFilter" className="text-sm text-gray-700 dark:text-gray-300">
@@ -252,11 +218,6 @@ export default function QuestionsPage() {
             </select>
           </div>
         </div>
-        {totalItems > 0 && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Total: <span className="font-medium">{totalItems}</span> questions
-          </span>
-        )}
       </div>
 
       {/* Tableau des questions */}
@@ -422,97 +383,15 @@ export default function QuestionsPage() {
 
       {/* Pagination */}
       {totalItems > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between bg-white dark:bg-gray-800 px-4 py-3 rounded-lg shadow gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Page <span className="font-medium">{currentPage}</span> sur{' '}
-              <span className="font-medium">{totalPages}</span>
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {totalItems > 0 && (
-                <>
-                  Affichage de{' '}
-                  <span className="font-medium">
-                    {(currentPage - 1) * perPage + 1}
-                  </span>
-                  {' - '}
-                  <span className="font-medium">
-                    {Math.min(currentPage * perPage, totalItems)}
-                  </span>
-                  {' sur '}
-                  <span className="font-medium">{totalItems}</span> questions
-                </>
-              )}
-            </span>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center space-x-2">
-              {/* Bouton Première page */}
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                ≪
-              </button>
-
-              {/* Bouton Page précédente */}
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                ‹
-              </button>
-
-              {/* Numéros de pages */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentPage === pageNum
-                      ? 'bg-green-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              {/* Bouton Page suivante */}
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                ›
-              </button>
-
-              {/* Bouton Dernière page */}
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                ≫
-              </button>
-            </div>
-          )}
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          perPage={perPage}
+          onPageChange={setCurrentPage}
+          onPerPageChange={setPerPage}
+          itemLabel="questions"
+        />
       )}
 
       {/* Modal de création de thème */}

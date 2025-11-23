@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\EmailTypeController;
 use App\Http\Controllers\Api\GiftController;
+use App\Http\Controllers\Api\ImportQuestionController;
+use App\Http\Controllers\Api\ImportThemeController;
 use App\Http\Controllers\Api\LevelController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PasswordController;
@@ -32,6 +34,8 @@ Route::get('zones', [ZoneController::class, 'index']);
 // Protected
 Route::middleware('auth:api')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
+    Route::put('auth/profile', [AuthController::class, 'updateProfile']);
+    Route::post('auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
 
     // User Management - Routes accessibles à tous les utilisateurs authentifiés
@@ -130,6 +134,7 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::delete('pages/{id}', [PageController::class, 'destroy']);
 
     // Gifts routes
+    Route::get('gifts/next-code', [GiftController::class, 'getNextCode']);
     Route::get('gifts', [GiftController::class, 'index']);
     Route::get('gifts/{id}', [GiftController::class, 'show']);
     Route::post('gifts', [GiftController::class, 'store']);
@@ -141,6 +146,16 @@ Route::middleware(['auth:api', 'role:superadmin,partner_mayor,partner_sponsor'])
     Route::get('stats/filters', [StatsController::class, 'filters']);
     Route::get('stats/dashboard', [StatsController::class, 'dashboard']);
     Route::get('stats/questions', [StatsController::class, 'questionPerformance']);
+
+    // Question Import
+    Route::get('questions/import/template', [ImportQuestionController::class, 'downloadTemplate']);
+    Route::post('questions/import/validate', [ImportQuestionController::class, 'validateImport']);
+    Route::post('questions/import/execute', [ImportQuestionController::class, 'executeImport']);
+
+    // Theme Import
+    Route::get('themes/import/template', [ImportThemeController::class, 'downloadTemplate']);
+    Route::post('themes/import/validate', [ImportThemeController::class, 'validateImport']);
+    Route::post('themes/import/execute', [ImportThemeController::class, 'executeImport']);
 });
 
 // Permissions Management - Requires permissions.edit permission

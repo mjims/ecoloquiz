@@ -29,18 +29,19 @@ class GiftController extends Controller
     {
         $validated = $request->validate([
             'per_page' => 'nullable|integer|min:1|max:100',
-            'level_id' => 'nullable|uuid',
+            'level_id' => 'nullable|array',
+            'level_id.*' => 'nullable|integer|exists:levels,id',
             'zone_id' => 'nullable|uuid',
             'company_name' => 'nullable|string',
         ]);
 
         $perPage = $validated['per_page'] ?? 15;
 
-        $query = Gift::with(['level']);
+        $query = Gift::with(['level', 'allocations']);
 
-        // Filtre par niveau
-        if (!empty($validated['level_id'])) {
-            $query->where('level_id', $validated['level_id']);
+        // Filtre par niveau(x)
+        if (!empty($validated['level_id']) && count(array_filter($validated['level_id'])) > 0) {
+            $query->whereIn('level_id', array_filter($validated['level_id']));
         }
 
         // Filtre par entreprise
@@ -57,7 +58,39 @@ class GiftController extends Controller
 
         $gifts = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+        // Add allocation counts to each gift
+        $gifts->getCollection()->transform(function ($gift) {
+            $gift->won_count = $gift->won_count;
+            $gift->remaining_count = $gift->remaining_count;
+            return $gift;
+        });
+
         return response()->json($gifts);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/gifts/next-code",
+     *     tags={"Gifts"},
+     *     summary="Get next available gift code",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Response(response=200, description="Next gift code")
+     * )
+     */
+    public function getNextCode()
+    {
+        // Get the last gift code that follows the pattern C{number}
+        $lastGift = Gift::where('code', 'REGEXP', '^C[0-9]+$')
+            ->orderByRaw('CAST(SUBSTRING(code, 2) AS UNSIGNED) DESC')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastGift) {
+            $currentNumber = intval(substr($lastGift->code, 1));
+            $nextNumber = $currentNumber + 1;
+        }
+
+        return response()->json(['code' => 'C' . $nextNumber]);
     }
 
     /**
@@ -91,7 +124,7 @@ class GiftController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'code' => 'required|string|max:10|unique:gifts,code',
+            'code' => 'nullable|string|max:10|unique:gifts,code',
             'name' => 'required|string|max:255',
             'company_name' => 'required|string|max:255',
             'siret' => 'nullable|string|max:14',
@@ -114,7 +147,24 @@ class GiftController extends Controller
             ], 422);
         }
 
-        $gift = Gift::create($validator->validated());
+        $data = $validator->validated();
+
+        // Auto-generate code if not provided
+        if (empty($data['code'])) {
+            $lastGift = Gift::where('code', 'REGEXP', '^C[0-9]+$')
+                ->orderByRaw('CAST(SUBSTRING(code, 2) AS UNSIGNED) DESC')
+                ->first();
+
+            $nextNumber = 1;
+            if ($lastGift) {
+                $currentNumber = intval(substr($lastGift->code, 1));
+                $nextNumber = $currentNumber + 1;
+            }
+
+            $data['code'] = 'C' . $nextNumber;
+        }
+
+        $gift = Gift::create($data);
         $gift->load('level');
 
         return response()->json([

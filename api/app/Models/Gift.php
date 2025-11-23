@@ -55,4 +55,16 @@ class Gift extends Model
     {
         return $this->metadata['zones'] ?? [];
     }
+
+    // Helper pour récupérer le nombre de cadeaux gagnés (alloués)
+    public function getWonCountAttribute()
+    {
+        return $this->allocations()->count();
+    }
+
+    // Helper pour récupérer le nombre de cadeaux restants
+    public function getRemainingCountAttribute()
+    {
+        return $this->total_quantity - $this->won_count;
+    }
 }

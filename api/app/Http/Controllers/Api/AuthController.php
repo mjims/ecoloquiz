@@ -274,6 +274,67 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Update user profile
+     */
+    public function updateProfile(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . auth('api')->id(),
+            'zone_id' => 'nullable|exists:zones,id',
+        ]);
+
+        $user = auth('api')->user();
+        $user->update([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+        ]);
+
+        // Update player's zone if provided
+        if ($user->player && isset($validated['zone_id'])) {
+            $user->player->update([
+                'zone_id' => $validated['zone_id']
+            ]);
+        }
+
+        // Reload relationships
+        $user->load(['roles', 'player', 'player.zone']);
+
+        return response()->json($user);
+    }
+
+    /**
+     * Change user password
+     */
+    public function changePassword(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = auth('api')->user();
+
+        // Verify current password
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'Le mot de passe actuel est incorrect'
+            ], 422);
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($validated['new_password'])
+        ]);
+
+        return response()->json([
+            'message' => 'Mot de passe changé avec succès'
+        ]);
+    }
+
     protected function respondWithToken($token, $user)
     {
         $ttl = (int) config('jwt.ttl'); // minutes

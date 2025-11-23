@@ -59,7 +59,7 @@ export default function Navbar() {
                   />
                 </svg>
               </div>
-              <span className="text-xl font-bold hidden sm:block">EcoloQuiz Admin</span>
+              <span className="text-xl font-bold hidden sm:block">EcoloQuiz</span>
             </Link>
           </div>
 
