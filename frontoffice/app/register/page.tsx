@@ -35,10 +35,14 @@ export default function RegisterPage() {
         try {
             const response = await apiClient.getZones();
             if (response.data) {
-                setZones(response.data);
+                // Handle both paginated and non-paginated responses
+                // @ts-ignore - API response type might be inconsistent
+                const zonesData = Array.isArray(response.data) ? response.data : (response.data.data || []);
+                setZones(zonesData);
             }
         } catch (error) {
             console.error('Error fetching zones:', error);
+            setZones([]);
         }
     };
 

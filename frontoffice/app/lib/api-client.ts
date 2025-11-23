@@ -108,6 +108,30 @@ class ApiClient {
     });
   }
 
+  // Profile endpoints
+  async getCurrentUser() {
+    return this.request<any>('/auth/me', {
+      method: 'GET',
+    });
+  }
+
+  async updateProfile(first_name: string, last_name: string, email: string, zone_id?: string) {
+    const body: any = { first_name, last_name, email };
+    if (zone_id) body.zone_id = zone_id;
+
+    return this.request<any>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async changePassword(current_password: string, new_password: string, new_password_confirmation: string) {
+    return this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password, new_password, new_password_confirmation }),
+    });
+  }
+
   // Themes endpoints
   async getThemes() {
     return this.request<any>('/themes', {

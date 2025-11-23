@@ -129,16 +129,6 @@ function QuizSelectionContent() {
                             <p className="text-gray-600 text-lg">Aucun thème disponible pour le moment.</p>
                         </div>
                     )}
-
-                    {/* Back to Dashboard */}
-                    <div className="mt-12 text-center">
-                        <button
-                            onClick={() => router.push('/dashboard')}
-                            className="text-teal-600 hover:text-teal-700 font-medium"
-                        >
-                            ← Retour au tableau de bord
-                        </button>
-                    </div>
                 </div>
             </main>
 
