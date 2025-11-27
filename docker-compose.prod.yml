@@ -92,7 +92,7 @@ services:
     container_name: ecoloquiz-nginx
     restart: always
     ports:
-      - "80:80"
+      - "8081:80"
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
