@@ -1,0 +1,101 @@
+services:
+  # Database
+  db:
+    image: mysql:8.0
+    container_name: ecoloquiz-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - ecoloquiz-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API (Laravel)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ecoloquiz-api
+    restart: always
+    working_dir: /var/www/html
+    volumes:
+      - ./api:/var/www/html
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_KEY: ${APP_KEY}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ecoloquiz-network
+
+  # Backoffice (Next.js)
+  backoffice:
+    build:
+      context: ./backoffice
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://exemple.com/api
+    container_name: ecoloquiz-backoffice
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://exemple.com/api
+      INTERNAL_API_URL: http://api:80/api
+    networks:
+      - ecoloquiz-network
+
+  # Frontoffice (Next.js)
+  frontoffice:
+    build:
+      context: ./frontoffice
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://exemple.com/api
+    container_name: ecoloquiz-frontoffice
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://exemple.com/api
+      INTERNAL_API_URL: http://api:80/api
+    networks:
+      - ecoloquiz-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ecoloquiz-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - api
+      - backoffice
+      - frontoffice
+    networks:
+      - ecoloquiz-network
+
+networks:
+  ecoloquiz-network:
+    driver: bridge
+
+volumes:
+  db_data:

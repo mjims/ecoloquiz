@@ -34,8 +34,10 @@ interface Quiz {
 interface ValidationResult {
   is_correct: boolean;
   points_earned: number;
-  correct_answer_id: string;
-  correct_answer_text: string;
+  correct_answer_id?: string;
+  correct_answer_text?: string;
+  correct_answer_ids?: string[];
+  correct_answer_texts?: string[];
   explanation?: string;
 }
 
@@ -222,15 +224,13 @@ export default function QuizPage() {
 
           {/* Feedback Banner (shown after validation) */}
           {showFeedback && validationResult && (
-            <div className={`mb-6 rounded-lg p-4 flex items-center justify-between ${
-              validationResult.is_correct
-                ? 'bg-green-50 border-2 border-green-200'
-                : 'bg-red-50 border-2 border-red-200'
-            }`}>
+            <div className={`mb-6 rounded-lg p-4 flex items-center justify-between ${validationResult.is_correct
+              ? 'bg-green-50 border-2 border-green-200'
+              : 'bg-red-50 border-2 border-red-200'
+              }`}>
               <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded flex items-center justify-center ${
-                  validationResult.is_correct ? 'bg-green-500' : 'bg-red-500'
-                }`}>
+                <div className={`w-8 h-8 rounded flex items-center justify-center ${validationResult.is_correct ? 'bg-green-500' : 'bg-red-500'
+                  }`}>
                   {validationResult.is_correct ? (
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -241,15 +241,13 @@ export default function QuizPage() {
                     </svg>
                   )}
                 </div>
-                <span className={`text-sm lg:text-base font-medium ${
-                  validationResult.is_correct ? 'text-green-800' : 'text-red-800'
-                }`}>
+                <span className={`text-sm lg:text-base font-medium ${validationResult.is_correct ? 'text-green-800' : 'text-red-800'
+                  }`}>
                   {validationResult.is_correct ? 'Bonne réponse' : 'Mauvaise réponse'}
                 </span>
               </div>
-              <span className={`text-sm lg:text-base font-bold ${
-                validationResult.is_correct ? 'text-green-700' : 'text-red-700'
-              }`}>
+              <span className={`text-sm lg:text-base font-bold ${validationResult.is_correct ? 'text-green-700' : 'text-red-700'
+                }`}>
                 {validationResult.points_earned > 0 ? '+' : ''}{validationResult.points_earned} points
               </span>
             </div>
@@ -297,7 +295,13 @@ export default function QuizPage() {
             <div className="space-y-3 mb-8">
               {currentQuestion.options.map((option) => {
                 const isSelected = selectedOption === option.id;
-                const isCorrectOption = showFeedback && validationResult && option.id === validationResult.correct_answer_id;
+
+                // Handle both singular and plural correct answers
+                const isCorrectOption = showFeedback && validationResult && (
+                  validationResult.correct_answer_id === option.id ||
+                  (validationResult.correct_answer_ids && validationResult.correct_answer_ids.includes(option.id))
+                );
+
                 const isIncorrectSelection = showFeedback && validationResult && isSelected && !validationResult.is_correct;
 
                 let optionStyle = 'bg-white border-gray-300';
@@ -321,18 +325,16 @@ export default function QuizPage() {
                     key={option.id}
                     onClick={() => handleOptionSelect(option.id)}
                     disabled={showFeedback}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-all flex items-center gap-3 ${optionStyle} ${
-                      showFeedback ? 'cursor-default' : ''
-                    }`}
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all flex items-center gap-3 ${optionStyle} ${showFeedback ? 'cursor-default' : ''
+                      }`}
                   >
                     {showFeedback && validationResult && (
-                      <div className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center ${
-                        isCorrectOption
-                          ? 'bg-green-500'
-                          : isIncorrectSelection
-                            ? 'bg-red-500'
-                            : 'bg-transparent'
-                      }`}>
+                      <div className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center ${isCorrectOption
+                        ? 'bg-green-500'
+                        : isIncorrectSelection
+                          ? 'bg-red-500'
+                          : 'bg-transparent'
+                        }`}>
                         {isCorrectOption && (
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -363,11 +365,10 @@ export default function QuizPage() {
                 <button
                   onClick={handleValidate}
                   disabled={!selectedOption || isValidating}
-                  className={`flex-1 font-medium py-3 px-6 rounded-lg transition-colors text-sm lg:text-base ${
-                    selectedOption && !isValidating
-                      ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex-1 font-medium py-3 px-6 rounded-lg transition-colors text-sm lg:text-base ${selectedOption && !isValidating
+                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   {isValidating ? 'Validation...' : 'Valider'}
                 </button>

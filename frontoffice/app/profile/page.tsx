@@ -75,7 +75,8 @@ export default function ProfilePage() {
     const fetchZones = async () => {
         const response = await apiClient.getZones();
         if (response.data) {
-            const zonesData = Array.isArray(response.data) ? response.data : response.data.data || [];
+            // @ts-ignore - API response type might be inconsistent
+            const zonesData = Array.isArray(response.data) ? response.data : (response.data.data || []);
             setZones(zonesData);
         }
     };
