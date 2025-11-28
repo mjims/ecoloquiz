@@ -32,7 +32,7 @@ services:
       APP_ENV: production
       APP_KEY: ${APP_KEY}
       APP_DEBUG: false
-      APP_URL: https://exemple.com/api
+      APP_URL: https://jovial-yonath.213-136-85-46.plesk.page/api
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306
@@ -43,7 +43,7 @@ services:
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
       BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
     volumes:
-      - ./api:/var/www/html
+      - ./api:/var/www/ecoloquiz/api
     depends_on:
       db:
         condition: service_healthy
@@ -56,12 +56,12 @@ services:
       context: ./backoffice
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://exemple.com/api
+        NEXT_PUBLIC_API_URL: https://jovial-yonath.213-136-85-46.plesk.page/api
     container_name: ecoloquiz-backoffice
     restart: always
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://exemple.com/api
+      NEXT_PUBLIC_API_URL: https://jovial-yonath.213-136-85-46.plesk.page/api
       INTERNAL_API_URL: http://api:80/api
     depends_on:
       - api
@@ -74,12 +74,12 @@ services:
       context: ./frontoffice
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://exemple.com/api
+        NEXT_PUBLIC_API_URL: https://jovial-yonath.213-136-85-46.plesk.page/api
     container_name: ecoloquiz-frontoffice
     restart: always
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://exemple.com/api
+      NEXT_PUBLIC_API_URL: https://jovial-yonath.213-136-85-46.plesk.page/api
       INTERNAL_API_URL: http://api:80/api
     depends_on:
       - api
