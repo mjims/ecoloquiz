@@ -1,6 +1,16 @@
 import { storage } from './storage';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Determine base URL based on environment
+const getBaseUrl = () => {
+  // If we are on the server (SSR)
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://api:80/api';
+  }
+  // If we are on the client
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 export interface ApiResponse<T = any> {
   data?: T;

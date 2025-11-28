@@ -1,0 +1,102 @@
+services:
+  # Database Service
+  db:
+    image: mysql:8.0
+    container_name: ecoloquiz-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      - ecoloquiz-network
+    # healthcheck:
+    #   test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+
+  # API Service (Laravel)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ecoloquiz-api
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_ENV: ${APP_ENV}
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_URL: ${APP_URL}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
+    volumes:
+      - ./api:/var/www/html
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+    networks:
+      - ecoloquiz-network
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost/"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+
+  # Backoffice Service (Next.js)
+  backoffice:
+    build:
+      context: ./backoffice
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    container_name: ecoloquiz-backoffice
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      INTERNAL_API_URL: http://api:80/api
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+    networks:
+      - ecoloquiz-network
+
+  # Frontoffice Service (Next.js)
+  frontoffice:
+    build:
+      context: ./frontoffice
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    container_name: ecoloquiz-frontoffice
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      INTERNAL_API_URL: http://api:80/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - ecoloquiz-network
+
+networks:
+  ecoloquiz-network:
+    driver: bridge

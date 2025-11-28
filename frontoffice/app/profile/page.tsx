@@ -75,7 +75,8 @@ export default function ProfilePage() {
     const fetchZones = async () => {
         const response = await apiClient.getZones();
         if (response.data) {
-            const zonesData = Array.isArray(response.data) ? response.data : response.data.data || [];
+            // @ts-ignore - API response type might be inconsistent
+            const zonesData = Array.isArray(response.data) ? response.data : (response.data.data || []);
             setZones(zonesData);
         }
     };
@@ -154,7 +155,7 @@ export default function ProfilePage() {
                     <div className="container mx-auto px-4 max-w-4xl">
                         {/* Page Header */}
                         <div className="text-center mb-8">
-                            <h1 className="text-4xl font-bold text-gray-800 mb-2">Mon Profil</h1>
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2">🌱</h1>
                             <p className="text-gray-600">Gérez vos informations personnelles</p>
                         </div>
 
