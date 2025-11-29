@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '../lib/api-client';
-import { storage } from '../lib/storage';
-import { authHelpers } from '../lib/auth-helpers';
+import { apiClient } from '@/lib/api-client';
+import { storage } from '@/lib/storage';
+import { authHelpers } from '@/lib/auth-helpers';
 
 export default function RegisterPage() {
     const router = useRouter();

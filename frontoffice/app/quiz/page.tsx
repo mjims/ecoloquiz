@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '../lib/api-client';
-import { storage } from '../lib/storage';
-import { authHelpers } from '../lib/auth-helpers';
-import ProtectedRoute from '../components/ProtectedRoute';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { apiClient } from '@/lib/api-client';
+import { storage } from '@/lib/storage';
+import { authHelpers } from '@/lib/auth-helpers';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 interface Theme {
     id: string;

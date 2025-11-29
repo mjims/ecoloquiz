@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '../lib/api-client';
-import { storage } from '../lib/storage';
+import { apiClient } from '@/lib/api-client';
+import { storage } from '@/lib/storage';
 
 interface PlayerStats {
     player: {
