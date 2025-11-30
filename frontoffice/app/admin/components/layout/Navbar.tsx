@@ -6,20 +6,20 @@ import { useAuth } from '@admin/context/AuthContext';
 import { useState } from 'react';
 
 const navItems = [
-  { label: 'Abonnés', href: '/abonnes' },
-  { label: 'Questions', href: '/questions' },
-  { label: 'Zones', href: '/zones' },
-  { label: 'Cadeaux', href: '/cadeaux' },
-  { label: 'Stats', href: '/stats' },
+  { label: 'Abonnés', href: '/admin/abonnes' },
+  { label: 'Questions', href: '/admin/questions' },
+  { label: 'Zones', href: '/admin/zones' },
+  { label: 'Cadeaux', href: '/admin/cadeaux' },
+  { label: 'Stats', href: '/admin/stats' },
   {
     label: 'Communication',
-    href: '/communication',
+    href: '/admin/communication',
     dropdown: [
-      { label: 'Mails', href: '/communication/mails' },
-      { label: 'Blogs', href: '/communication/blogs' },
+      { label: 'Mails', href: '/admin/communication/mails' },
+      { label: 'Blogs', href: '/admin/communication/blogs' },
     ]
   },
-  { label: 'Utilisateurs', href: '/utilisateurs' },
+  { label: 'Utilisateurs', href: '/admin/utilisateurs' },
 ];
 
 export default function Navbar() {
@@ -30,7 +30,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.push('/admin/login');
   };
 
   const isActive = (href: string) => {

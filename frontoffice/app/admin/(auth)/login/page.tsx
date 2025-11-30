@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      router.push('/abonnes');
+      router.push('/admin/abonnes');
     } else {
       setErrors({ general: result.error || 'Identifiants incorrects' });
       setIsSubmitting(false);
